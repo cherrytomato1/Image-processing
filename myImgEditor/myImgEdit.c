@@ -427,6 +427,7 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 					sum += img[i + y][j + x];
 
 			/*
+				모자이크를 위한 작업
 				tmp(합계)를 count(픽셀 개수)로 나누어 블럭 내 픽셀의 평균 값을 구함
 				이후 구해진 값을 블럭 내 모든 픽셀에 입력해 블럭 내 모든 픽셀이 같은 값을 갖게함.
 				최대 row와 col 초과시 break.
@@ -439,6 +440,11 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 					xSquare = (abs(locX - (j + x))) * (abs(locX - (j + x)));
 
 					tmp = sqrt(ySquare + xSquare);
+
+					/*
+						mod에 따라 모자이크 작업된 픽셀을 사용할 지
+						원래 픽셀을 그대로 작업할 지 결과 출력
+					*/
 
 					if (mod)
 					{
