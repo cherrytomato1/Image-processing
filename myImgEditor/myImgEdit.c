@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
 #define uchar unsigned char
 #define MAXrange 256
@@ -82,6 +83,25 @@ uchar** uc_alloc(int size_x, int size_y)
 		if ((m[i] = (uchar*)calloc(size_x, sizeof(uchar))) == NULL)
 		{
 			printf("uc_alloc error 2\7\n");
+			exit(0);
+		}
+	return m;
+}
+
+int** i_alloc(int size_x, int size_y)
+{
+	int** m;
+	int i;
+	if ((m = (int* *)calloc(size_y, sizeof(int*))) == NULL)
+	{
+		printf("ui_alloc error 1\7\n");
+		exit(0);
+	}
+
+	for (i = 0; i < size_y; i++)
+		if ((m[i] = (int*)calloc(size_x, sizeof(int))) == NULL)
+		{
+			printf("ui_alloc error 2\7\n");
 			exit(0);
 		}
 	return m;
@@ -490,10 +510,85 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 
 }
 
+double uniform()
+{
+	
+	return((double)(rand() % RAND_MAX) / RAND_MAX - 0.5);
+}
+
+double gaussian()
+{
+
+	static int ready = 0;
+	static double gstore;
+	double v1=0, v2=0, r, fac, gaus;
+	double uniform();
+
+	//printf("%lf\n", uniform());
+	if (ready == 0) {
+
+		do {
+			
+			v1 = 2. * uniform();
+			v2 = 2. * uniform();
+			r = v1 * v1 + v2 * v2;
+			//printf(" r= %lf", r);
+		} while (r > 1.0);
+
+		fac = sqrt(-2. * log(r) / r);
+		gstore = v1 * fac;
+		gaus = v2 * fac;
+		ready = 1;
+
+	}
+	else {
+		ready = 0;
+		gaus = gstore;
+	}
+	//printf("%lf ", gaus);
+	return (gaus);
+}
+
+double noisedImage(uchar** img, int** res, int row, int col)
+{
+	double sum = 0, avg;
+	int i, j;
+
+	for (i = 0; i < row; i++)
+		for (j = 0; j < col; j++)
+			res[i][j] = img[i][j] + ((int)gaussian()*50);
+
+
+	return 0;
+}
+
+void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
+{
+	int** tmp;
+	int** tmp2;
+	int i, j, k;
+
+	
+	tmp = i_alloc(row, col);
+	tmp2 = i_alloc(row, col);
+
+	for (k = 0; k < page; k++)
+	{
+		noisedImage(img, tmp2, row, col);
+		for (i = 0; i < row; i++)
+			for (j = 0; j < col; j++)
+				tmp[i][j] += tmp2[i][j];
+	}
+	for (i = 0; i < row; i++)
+		for (j = 0; j < col; j++)
+			res[i][j] = (tmp[i][j]/page);
+}
 
 int main(int argc, char* argv[])
 {
-	int row, col,mode,arg0;
+	srand(time(NULL));
+	int row, col,mode,arg0,i;
+	
 	//IplImage* cvImg;
 	//CvSize imgSize;
 
@@ -564,6 +659,14 @@ int main(int argc, char* argv[])
 		case 9:
 
 			circleMosaic(img, res, row, col, arg0);
+			break;
+
+		case 10:
+			//noisedImage(img, res, row, col);
+			//break;
+
+		case 11:
+			noisedImage2(img, res, row, col,arg0);
 			break;
 
 		default : 
