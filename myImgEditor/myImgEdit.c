@@ -94,14 +94,14 @@ int** i_alloc(int size_x, int size_y)
 	int i;
 	if ((m = (int* *)calloc(size_y, sizeof(int*))) == NULL)
 	{
-		printf("ui_alloc error 1\7\n");
+		printf("i_alloc error 1\7\n");
 		exit(0);
 	}
 
 	for (i = 0; i < size_y; i++)
 		if ((m[i] = (int*)calloc(size_x, sizeof(int))) == NULL)
 		{
-			printf("ui_alloc error 2\7\n");
+			printf("i_alloc error 2\7\n");
 			exit(0);
 		}
 	return m;
@@ -491,10 +491,7 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 		}
 	printf("Mosaic block %d done... ", block);
 	return;
-
-	for (i = 0; i < row; i++)
-		for (j = 0; j < col; j++)
-		{													//abs	== 절대값
+			//abs	== 절대값
 				//xSquare == (abs(-256~255))^2 ->> 0~255^2 
 			//제곱의 과정인데 절대값을 넣는 이유??
 
@@ -506,8 +503,6 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 
 			// tmp == 각각의 픽셀이 한가운데의 중앙 점으로부터 유격되어 있는 정도.
 			//빗변의 길이 = (a^2+b^2)의 제곱근 = tmp = (ysquare +xsquare) 제곱근
-		}
-
 }
 
 double uniform()
@@ -582,6 +577,7 @@ void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 			res[i][j] = (tmp[i][j]/page);
+
 }
 
 int main(int argc, char* argv[])
