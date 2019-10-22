@@ -242,10 +242,10 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256], int 
 int main(int argc, char* argv[])
 {
 	int i, j;
-	IplImage* cvImg;
-	CvSize imgSize;
-	uchar** img;
-	if (argc != 4)
+	IplImage* cvImg,*cvImg2;
+	CvSize imgSize,imgSize2;
+	uchar** img, ** img2;
+	if (argc != 7)
 	{
 		printf("arg error \n");
 		exit(0);
@@ -255,15 +255,28 @@ int main(int argc, char* argv[])
 	img = uc_alloc(imgSize.width, imgSize.height);
 	read_unmatrix(imgSize.width, imgSize.height, img, argv[1]);
 
+	imgSize2.width = atoi(argv[5]);
+	imgSize2.height = atoi(argv[6]);
+	img2 = uc_alloc(imgSize2.width, imgSize2.height);
+	read_unmatrix(imgSize2.width, imgSize2.height, img2, argv[4]);
+
 	cvImg = cvCreateImage(imgSize, 8, 1);
 	for (i = 0; i < imgSize.height; i++)
 		for (j = 0; j < imgSize.width; j++)
-		{
 			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
-		}
+
 	cvNamedWindow(argv[1], 1);
 
 	cvShowImage(argv[1], cvImg);
+
+	cvImg2 = cvCreateImage(imgSize2, 8, 1);
+
+	for (i = 0; i < imgSize2.height; i++)
+		for (j = 0; j < imgSize2.width; j++)
+			((uchar*)(cvImg2->imageData + cvImg2->widthStep * i))[j] = img2[i][j];
+
+	cvShowImage(argv[4], cvImg2);
+
 	get_hist1(img, imgSize.width, imgSize.height,0);
 
 	get_Match(img, imgSize.width, imgSize.height, tmpCDF,tmpCDF);
