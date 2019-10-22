@@ -21,6 +21,21 @@ EX) 256 * 256 픽셀 수의 이미지인경우
 Input 값을 역함수 취해 평평한 형태로 만둠.
 */
 
+
+
+/*
+히스토그램 매칭 과정
+1. 입력영상의 히스토그램
+2. 입력영상의 누적분포함수(CDF)
+3. 타겟영상의 히스토그램
+4. 타겟영상의 CDF
+5. 타겟영상 CDF의 역변환
+6. 입력영상 CDF 평활화
+7. 평활화된 입력영상에 타겟영상 CDF 역변환 적용
+
+
+*/
+
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
 #include <stdio.h>
@@ -144,10 +159,16 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 
 		cvLine(imgHisto, cvPoint(i, 255), cvPoint(i, 255 - tmp), CV_RGB(255, 255, 255), 1, 8, 0);
 	}
-	if(mod==0)
-		cvShowImage("Histo Line", imgHisto);
-	else
-		cvShowImage("Histo Equal ", imgHisto);         // 원본 히스토그램 출력
+
+	switch (mod)
+	{
+	case 0:
+		cvShowImage("Original Histogram", imgHisto);
+	case 1:
+		cvShowImage("Target Histogram", imgHisto);
+	case 2:
+		cvShowImage("Result Histogram", imgHisto);
+	}
 
 
 	//모든 히스토그램을 더하여 다음 히스토그램
@@ -170,10 +191,19 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		cvLine(cdfImgHisto, cvPoint(i, 255), cvPoint(i, 256 - tmp), CV_RGB(255, 255, 255), 1, 8, 0);
 		tmpCDF[i] = tmp;
 	}
-	if(mod==0)
+	switch (mod)
+	{
+	case 0 :
 		cvShowImage("Original CDF of Histogram", cdfImgHisto);
-	else
-		cvShowImage("CDF of Histogram ", cdfImgHisto); //누적 히스토그램
+		break;
+	case 1 :
+		cvShowImage("Target CDF of Histogram", cdfImgHisto);
+		break;
+	case 2 :
+		cvShowImage("Result CDF of Histogram", cdfImgHisto);
+		break;
+	}
+	
 	range = cdfOfHisto[255] - cdfOfHisto[0];
 	// printf("%d" %d \n", tp, range);
 
@@ -185,7 +215,7 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		t = (int)ceil(((cdfOfHisto[i] - cdfOfHisto[0]) * 255.0) / range);
 		histogramEqual[i] = (t < 0) ? 0 : (t > 255) ? 255 : t;
 		printf("%d, ", histogramEqual[i]);
-		//0~255사이로 값을 고정ㄴ
+		//평활화
 	}
 	//히스토그램의 평활화ㄹㄴ 작업
 	//ceil : 올림함수, 매개변수 실수형 1개
@@ -193,11 +223,13 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 	cvReleaseImage(&imgHisto);						//메모리 해제
 	cvReleaseImage(&cdfImgHisto);					//메모리 해제
 
-	/*
-	for (i = 0; i < Y_Size; ++i)
-		for (j = 0; j < X_Size; ++j)
-			img[i][j] = histogramEqual[img[i][j]];
-			*/
+	if (mod == 0)
+	{
+		for (i = 0; i < Y_Size; ++i)
+			for (j = 0; j < X_Size; ++j)
+				img[i][j] = histogramEqual[img[i][j]];
+		
+	}
 }
 
 
@@ -265,6 +297,9 @@ int main(int argc, char* argv[])
 		for (j = 0; j < imgSize.width; j++)
 			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
+	// 원본 히스토그램 출력
+	get_hist1(img, imgSize.width, imgSize.height, 0);			
+
 	cvNamedWindow(argv[1], 1);
 
 	cvShowImage(argv[1], cvImg);
@@ -277,17 +312,17 @@ int main(int argc, char* argv[])
 
 	cvShowImage(argv[4], cvImg2);
 
-	get_hist1(img, imgSize.width, imgSize.height,0);
+	//타겟 히스토그램 출력
+	get_hist1(img2, imgSize2.width, imgSize2.height, 1);
 
-	get_Match(img, imgSize.width, imgSize.height, tmpCDF,tmpCDF);
+	get_Match(img, imgSize.width, imgSize.height, histogramEqual,tmpCDF);
 
 	for (i = 0; i < imgSize.height; i++)
 		for (j = 0; j < imgSize.width; j++)
-		{
 			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
-		}
+
 	cvShowImage("Histogram match...", cvImg);
-	get_hist1(img, imgSize.width, imgSize.height,1);
+	get_hist1(img, imgSize.width, imgSize.height,2);
 	cvWaitKey(0);
 	cvDestroyWindow(argv[1]);
 	cvReleaseImage(&cvImg);
