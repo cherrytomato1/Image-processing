@@ -387,7 +387,7 @@ void bitSlicing2(uchar** img, uchar** res, int row, int col, int count)
 		//res8(비트,pos7)/(2^0)+ res7/(2^1) + res6/(2^2) + res5/(2^3) +res4/(2^4) + res3/(2^5) .. . .. 
 		//0111 1111 + 0011 1111 + 0001 1111 + 0000 1111 + 0000 0111 ... 의 결과가 출력된다
 		//8비트 페이지만 남긴 최종 결과물은 (pos 7) 127(0111 1111)
-	}
+	}  
 	printf("bit sliced2");
 	return;
 }
@@ -546,7 +546,7 @@ double gaussian()
 
 double noisedImage(uchar** img, int** res, int row, int col)
 {
-	double sum = 0, avg;
+	double sum = 0;
 	int i, j;
 
 	for (i = 0; i < row; i++)
