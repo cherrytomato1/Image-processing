@@ -43,7 +43,7 @@ Input 값을 역함수 취해 평평한 형태로 만둠.
 #include <stdlib.h>
 #define unsigned char uchar
 
-// 정수형 크기 설정 히스토그램(확률분포함수), CDF(누적분포함수), Equalization histogram
+// 정수형 크기 설정 히스토그램(확률분포함수), CDF(누적분포함수), 역변환된(CDF)
 int histogram[256], cdfOfHisto[256], histogramEqual[256], tmpCDF[256];
 
 // 문자형 포인터 생성
@@ -121,20 +121,18 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 	cdfSize.width = 256;
 	cdfSize.height = 256;
 
+
 	imgHisto = cvCreateImage(histoSize, 8, 1);
 	cdfImgHisto = cvCreateImage(cdfSize, 8, 1);
 														//이미지 초기화
 	for (i = 0; i < histoSize.height; i++)
 		for (j = 0; j < histoSize.width; j++)
-		{
 			((uchar*)(imgHisto->imageData + imgHisto->widthStep * i))[j] = 0;
-		}
 
 	for (i = 0; i < cdfSize.height; i++)
-		for (j = 0; j < histoSize.width; j++)
-		{
+		for (j = 0; j < cdfSize.width; j++)
 			((uchar*)(cdfImgHisto->imageData + cdfImgHisto->widthStep * i))[j] = 0;
-		}
+
 
 	tp = X_Size * Y_Size;
 
@@ -182,7 +180,7 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 	// Draw the CDF of Histogram
 	//최대 히스토그램 값을(중첩된 마지막 값) t,p로 지정
 	tmp1 = (double)cdfOfHisto[255];
-	//그와 비례하게 나누어 값 입력(0~1)
+	//그와 비례하게 나누어 값 입력(0~255)
 	printf("\n\ncdfHisto Temp%d \n\n\n", mod);
 	for (i = 0; i < 256; ++i)
 	{
@@ -215,28 +213,29 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		t = (int)ceil(((cdfOfHisto[i] - cdfOfHisto[0]) * 255.0) / range);
 		histogramEqual[i] = (t < 0) ? 0 : (t > 255) ? 255 : t;
 		printf("%d, ", histogramEqual[i]);
-		//평활화
+		//역변환 == 평활화(역함수 적용)
 	}
 	//히스토그램의 평활화ㄹㄴ 작업
 	//ceil : 올림함수, 매개변수 실수형 1개
+
+	//if(mod==0) cvShowImage("역변환", rvsHisto);
 
 	cvReleaseImage(&imgHisto);						//메모리 해제
 	cvReleaseImage(&cdfImgHisto);					//메모리 해제
 
 	if (mod == 0)
-	{
 		for (i = 0; i < Y_Size; ++i)
 			for (j = 0; j < X_Size; ++j)
 				img[i][j] = histogramEqual[img[i][j]];
-		
-	}
+	
 }
 
 
 
-void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256], int histogramMatch[256])
+void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 {
 	int i, j, tmp, matchz = 0;
+	int histogramMatch[256];
 	float diff;
 
 	printf("Start HistoGram Specification \n");
@@ -254,13 +253,11 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256], int 
 		diff = abs(i - histogramSpec[0]);
 		matchz = 0;
 		for (j = 0; j < 256; ++j)
-		{
 			if (abs(i - histogramSpec[j]) < diff)
 			{
 				diff = abs(i - histogramSpec[j]);
 				matchz = j;
 			}
-		}
 		histogramMatch[i] = (uchar)matchz;
 	}
 
@@ -268,6 +265,56 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256], int 
 		for (j = 0; j < X_Size; ++j)
 			img[i][j] = histogramMatch[img[i][j]];
 
+}
+
+void constrastStreching(uchar** img, uchar** outImg, int X_Size, int Y_Size)
+{
+	int i, j;
+	int min = 255, max = 0;
+	uchar LUT[256];
+	double scaleFactor, tmp;
+	for (i = 0; i < 256; i++)
+		histogram[i];
+
+	for (i = 0; i < Y_Size; i++)
+		for (j = 0; j < X_Size; j++)
+			histogram[img[i][j]]++;
+
+	for (i = 0; i < 256; i++)
+		if (histogram[i])
+		{
+			min = i;
+			break;
+		}
+
+	for (i = 255; i = 0; i--)
+		if (histogram[i])
+		{
+			max = i;
+			break;
+		}
+
+	printf("Low Threshold is %d High Threshold is %d \n", min, max);
+	for (i = 0; i < min; i++)
+		LUT[i] = 0;
+	for (i = 255; i >= max; i--)
+		LUT[i] = 255;
+
+	scaleFactor = 255.0 / (double)(max - min);
+
+	for (i = min ;i < max; i++)
+	{
+		tmp = (i - min) * scaleFactor;
+
+		if (tmp < 0) tmp = 0;
+		if (tmp > 255) tmp = 255;
+
+		LUT[i] = (uchar)tmp;
+	}
+
+	for (i = 0; i < Y_Size; i++)
+		for (j = 0; j < X_Size; j++)
+			outImg[i][j] = LUT[img[i][j]];
 }
 
 
@@ -315,7 +362,7 @@ int main(int argc, char* argv[])
 	//타겟 히스토그램 출력
 	get_hist1(img2, imgSize2.width, imgSize2.height, 1);
 
-	get_Match(img, imgSize.width, imgSize.height, histogramEqual,tmpCDF);
+	get_Match(img, imgSize.width, imgSize.height, histogramEqual);
 
 	for (i = 0; i < imgSize.height; i++)
 		for (j = 0; j < imgSize.width; j++)
