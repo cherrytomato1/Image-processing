@@ -1,24 +1,4 @@
 ﻿/*
-10월 14일 히스토그램, equalization program
-EX) 256 * 256 픽셀 수의 이미지인경우
-영상은 다양한 화소 값(0~255)으로 이루어져있으며,
-영상에 걸친 화소 값 분포는 영상의 중요한 특징을 구성(0의 개수, 1의 개수, ~ 255의 개수) -> 화소의 개수
-예를 들어, 1채널 그레이레벨 영상에서 각 화소는 0~255 사이의 값을 갖는다.
-영상 내용에 따라 영상 내부에 펼처진 그레이 음영의 양이 저마다 다르므로 여기서 히스토그램은 영상에서
-특정 값을 갖는 화소 개수를 제공하게되는 단순한 테이블.
-
-- 분포를 표현하는 histogram (PDF)
-1. original Image인 경우 골고루 분포돼있는 형태
-2. dark Image인 경우 0의 값 부분이 가장크며 그 후 떨어져 200대는 값이 없는 형태
-3. Bright Image인 경우 0은 값이 없고 중간값 부터 계속 증가하는 형태
-
-- 누적 분포를 표현하는 histogram (CDF)
- 0의 값 + 1의 값 식으로 누적인형태를 보여줌
- 256 256 크기의 이미지인 경우 256부분에서 누적 값이 1인 형태
-
-- histogram equalization(평활화)
-모여있는 히스토그램을 평활화 시켜서 전체를 고르게 만드는 방법
-Input 값을 역함수 취해 평평한 형태로 만둠.
 */
 
 
@@ -248,19 +228,6 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 				histogramMatch[i] = j;
 	}
 
-	for (i = 0; i < 256; ++i)
-	{
-		diff = abs(i - histogramSpec[0]);
-		matchz = 0;
-		for (j = 0; j < 256; ++j)
-			if (abs(i - histogramSpec[j]) < diff)
-			{
-				diff = abs(i - histogramSpec[j]);
-				matchz = j;
-			}
-		histogramMatch[i] = (uchar)matchz;
-	}
-
 	for (i = 0; i < Y_Size; ++i)
 		for (j = 0; j < X_Size; ++j)
 			img[i][j] = histogramMatch[img[i][j]];
@@ -345,7 +312,7 @@ int main(int argc, char* argv[])
 			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
 	// 원본 히스토그램 출력
-	get_hist1(img, imgSize.width, imgSize.height, 0);			
+	get_hist1(img, imgSize.width, imgSize.height, 0);	
 
 	cvNamedWindow(argv[1], 1);
 
@@ -368,7 +335,7 @@ int main(int argc, char* argv[])
 		for (j = 0; j < imgSize.width; j++)
 			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
-	cvShowImage("Histogram match...", cvImg);
+	cvShowImage("Histogram match...", cvImg); 
 	get_hist1(img, imgSize.width, imgSize.height,2);
 	cvWaitKey(0);
 	cvDestroyWindow(argv[1]);
