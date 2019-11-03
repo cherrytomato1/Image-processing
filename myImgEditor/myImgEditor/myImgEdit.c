@@ -661,9 +661,13 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 
 void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
 {
-	int block_size = 3;
+	int block_size = 3, i;
 
-	double mask[3][3];
+	double **mask;
+
+	mask = (double **)calloc(block_size, sizeof(double*));
+	for (i = 0; i < block_size; i++)
+		mask[i] = (double *)calloc(block_size, sizeof(double));
 
 	make_Mask(block_size, mask, flag);
 
