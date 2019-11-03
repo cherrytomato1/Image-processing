@@ -507,7 +507,6 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 
 double uniform()
 {
-	
 	return((double)(rand() % RAND_MAX) / RAND_MAX - 0.5);
 }
 
@@ -578,6 +577,97 @@ void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 		for (j = 0; j < col; j++)
 			res[i][j] = (tmp[i][j]/page);
 
+}
+
+
+void make_Mask(int mSize, double **mask, int flag)
+{
+
+	int i, j;
+
+	double gausMask[3][3] =		{ 1 / 16, 2 / 16, 1 / 16,
+								  2 / 16, 4 / 16, 2 / 16, 
+								  1 / 16, 2 / 16, 1 / 16 };
+	double aveMask[3][3] =		{ 1 / 9, 1 / 9, 1 / 9, 
+								  1 / 9, 1 / 9, 1 / 9, 
+								  1 / 9, 1 / 9, 1 / 9 };
+	printf("now filtering\n");
+	switch (flag)
+	{
+		//마스크가 가르키는 주소를 원하는 마스크로 대입
+	case 0 :
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+			{
+				mask[i][j] = gausMask[i][j];
+				printf("%lf %d %d , ", mask[i][j], i, j);
+			}
+		break;
+	case 1 :
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = aveMask[i][j];
+		break;
+	default :
+		printf("mask number wrong...");
+		exit(1);
+	}
+	printf("now masking\n");
+}
+
+
+void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, uchar** res)
+{
+	int i, j, x, y;
+
+	int margin, indexX, indexY;
+	double sum, coeff;
+
+	margin = (int)(F_length / 2);
+
+	for (i = 0; i < size_y; i++)
+		for (j = 0; j < size_x; j++)
+		{
+			sum = 0;
+			for (y = 0; y < F_length; y++)
+			{
+				indexY = i - margin + y;
+				if (indexY < 0)
+					indexY = -indexY;
+				else if (indexY >= size_y)
+					indexY = (2 * size_y - indexY - 1);
+				for (x = 0; x < F_length; x++)
+				{
+					indexX = j - margin + x;
+					if (indexX < 0)
+						indexX = -indexX;
+					else if (indexX >= size_x)
+						indexX = (2 * size_x - indexX - 1);
+
+					sum += h[y][x] * (double)img[indexY][indexX];
+
+				}
+			}
+
+			//sum+=128;
+
+			if (sum < 0)
+				sum = 0;
+			else if (sum > 255)
+				sum = 255.;
+			res[i][j] = (uchar)sum;
+		}
+}
+
+void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
+{
+	int block_size = 3;
+
+	double mask[3][3];
+
+	make_Mask(block_size, mask, flag);
+
+	convolution(mask, block_size, x_size, y_size, img, res);
 }
 
 int main(int argc, char* argv[])
@@ -663,6 +753,11 @@ int main(int argc, char* argv[])
 
 		case 11:
 			noisedImage2(img, res, row, col,arg0);
+			break;
+
+		case 12 :
+			
+			Filtering(img, res, row, col, arg0);
 			break;
 
 		default : 
