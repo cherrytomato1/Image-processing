@@ -248,35 +248,30 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 
 	printf("Start HistoGram Specification \n");
 
+	//지정영상의 CDF를 다시 역변환하는 과정
 	for (i = 0; i < 256; i++)
 	{
 		histogramMatch[i] = 0;	
 		for (j = 0; j < 256; j++)
 			if ((i - histogramSpec[j]) > 0)
-			{
 				histogramMatch[i] = j;
-			}
 	}
-	//이것도 역변환임
 
 	for (i = 0; i < 256; ++i)
 		cvLine(matchImg, cvPoint(i, 255), cvPoint(i, 255 - histogramMatch[i]), CV_RGB(255, 255, 255), 1, 8, 0);
 
 	cvShowImage("역변환된 히스토그램", matchImg);
-	/*
-		histogramMatch 매칭된 그것?>???????????
-	
-	*/
-	
+
+	//역변환하며 이미지 대응
 	for (i = 0; i < Y_Size; ++i)
 		for (j = 0; j < X_Size; ++j)
-			img[i][j] = histogramMatch[img[i][j]];		//또 역변환( 이미지 대입 )
+			img[i][j] = histogramMatch[img[i][j]];		
 
 			
-
+	//역변환하며 이미지 대응
 	/*for (i = 0; i < Y_Size; ++i)
 		for (j = 0; j < X_Size; ++j)
-			img[i][j] = histogramSpec[img[i][j]];					//들어가는 것 자체가 역변환임
+			img[i][j] = histogramSpec[img[i][j]];					
 			*/
 
 }
