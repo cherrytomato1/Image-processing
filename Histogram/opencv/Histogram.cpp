@@ -1,4 +1,9 @@
 ﻿/*
+
+	1. cdf를 이미지에 대응하면서 동시에 역변환을 수행함..
+	2. 첫 역변환 수행시 이미지는 평활화된 cdf를 갖음
+	3. 평활화된 이미지에 원하는 영상의 cdf를 적용하면 그영상의 cdf를 갖음
+		3-1. cdf를 적용시 역변환한 cdf를 적용해야 하므로 지정영상의 cdf의 역변환을 평활화된 영상에 대입함.
 */
 
 
@@ -199,15 +204,15 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		//정규화.
 	}
 	//히스토그램의 평활화ㄹㄴ 작업
-	//ceil : 올림함수, 매개변수 실수형 1개
+
 
 	//if(mod==0) cvShowImage("역변환", rvsHisto);
 
 	cvReleaseImage(&imgHisto);						//메모리 해제
 	cvReleaseImage(&cdfImgHisto);					//메모리 해제
 
-	if (mod == 0)									//mod 0일 때 평활화 수행(오리지날 이미지)
-		for (i = 0; i < Y_Size; ++i)
+	if (mod == 0)									//mod 0일 때 cdf를 역변환하여 대입 평활화 수행(오리지날 이미지)
+		for (i = 0; i < Y_Size; ++i)				//대입하는 것 자체가 역변환 한 후에 진행 하는 것임
 			for (j = 0; j < X_Size; ++j)
 				img[i][j] = histogramEqual[img[i][j]];
 	
@@ -257,16 +262,17 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 		histogramMatch 매칭된 그것?>???????????
 	
 	*/
-	/*
+	
 	for (i = 0; i < Y_Size; ++i)
 		for (j = 0; j < X_Size; ++j)
-			img[i][j] = histogramMatch[img[i][j]];
+			img[i][j] = histogramMatch[img[i][j]];		//또 역변환( 이미지 대입 )
 
-			*/
+			
 
-	for (i = 0; i < Y_Size; ++i)
+	/*for (i = 0; i < Y_Size; ++i)
 		for (j = 0; j < X_Size; ++j)
 			img[i][j] = histogramSpec[img[i][j]];					//들어가는 것 자체가 역변환임
+			*/
 
 }
 
