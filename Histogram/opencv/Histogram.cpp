@@ -301,51 +301,76 @@ int main(int argc, char* argv[])
 	img = uc_alloc(imgSize.width, imgSize.height);
 	read_unmatrix(imgSize.width, imgSize.height, img, argv[1]);
 
-	imgSize2.width = atoi(argv[5]);
-	imgSize2.height = atoi(argv[6]);
-	img2 = uc_alloc(imgSize2.width, imgSize2.height);
-	read_unmatrix(imgSize2.width, imgSize2.height, img2, argv[4]);
 
-	outimg = uc_alloc(imgSize.width, imgSize.height);
+	if(*argv[4]=='-1')
+	{
+		cvImg = cvCreateImage(imgSize, 8, 1);
+		for (i = 0; i < imgSize.height; i++)
+			for (j = 0; j < imgSize.width; j++)
+				((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
-	cvImg = cvCreateImage(imgSize, 8, 1);
+		// 원본 히스토그램 출력
+		get_hist1(img, imgSize.width, imgSize.height, 0);			//원본 히스토그램 출력 및 평활화
 
-//	constrastStreching(img, outimg, imgSize.width, imgSize.height);
+		cvNamedWindow(argv[1], 1);				//윈도우 열기
 
-	
-	for (i = 0; i < imgSize.height; i++)
-		for (j = 0; j < imgSize.width; j++)
-			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
+		cvShowImage(argv[1], cvImg);			//이미지 열기
 
-	// 원본 히스토그램 출력
-	get_hist1(img, imgSize.width, imgSize.height, 0);			//원본 히스토그램 출력 및 평활화
+		for (i = 0; i < imgSize.height; i++)
+			for (j = 0; j < imgSize.width; j++)
+				((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
-	cvNamedWindow(argv[1], 1);				//윈도우 열기
+		cvShowImage("histoequals...", cvImg);			//이미지 열기
+	}
 
-	cvShowImage(argv[1], cvImg);			//이미지 열기
+	else 
+	{
+		imgSize2.width = atoi(argv[5]);
+		imgSize2.height = atoi(argv[6]);
+		img2 = uc_alloc(imgSize2.width, imgSize2.height);
+		read_unmatrix(imgSize2.width, imgSize2.height, img2, argv[4]);
 
-	cvImg2 = cvCreateImage(imgSize2, 8, 1);	//이미지 생성2
+		outimg = uc_alloc(imgSize.width, imgSize.height);
 
-	//타겟 이미지 입력
-	for (i = 0; i < imgSize2.height; i++)
-		for (j = 0; j < imgSize2.width; j++)
-			((uchar*)(cvImg2->imageData + cvImg2->widthStep * i))[j] = img2[i][j];
-	//타겟 이미지 출력
-	cvShowImage(argv[4], cvImg2);
+		cvImg = cvCreateImage(imgSize, 8, 1);
 
-	
-	//타겟 히스토그램 출력
-	get_hist1(img2, imgSize2.width, imgSize2.height, 1);			
+		//	constrastStreching(img, outimg, imgSize.width, imgSize.height);
 
-	//역변환된 타겟 히스토그램 cdf를 평활화된 원본 이미지에 대입
-	get_Match(img, imgSize.width, imgSize.height, histogramEqual);
 
-	for (i = 0; i < imgSize.height; i++)
-		for (j = 0; j < imgSize.width; j++)
-			((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
+		for (i = 0; i < imgSize.height; i++)
+			for (j = 0; j < imgSize.width; j++)
+				((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
-	cvShowImage("Histogram match...", cvImg); 
-	get_hist1(img, imgSize.width, imgSize.height,2);
+		// 원본 히스토그램 출력
+		get_hist1(img, imgSize.width, imgSize.height, 0);			//원본 히스토그램 출력 및 평활화
+
+		cvNamedWindow(argv[1], 1);				//윈도우 열기
+
+		cvShowImage(argv[1], cvImg);			//이미지 열기
+
+		cvImg2 = cvCreateImage(imgSize2, 8, 1);	//이미지 생성2
+
+		//타겟 이미지 입력
+		for (i = 0; i < imgSize2.height; i++)
+			for (j = 0; j < imgSize2.width; j++)
+				((uchar*)(cvImg2->imageData + cvImg2->widthStep * i))[j] = img2[i][j];
+		//타겟 이미지 출력
+		cvShowImage(argv[4], cvImg2);
+
+
+		//타겟 히스토그램 출력
+		get_hist1(img2, imgSize2.width, imgSize2.height, 1);
+
+		//역변환된 타겟 히스토그램 cdf를 평활화된 원본 이미지에 대입
+		get_Match(img, imgSize.width, imgSize.height, histogramEqual);
+
+		for (i = 0; i < imgSize.height; i++)
+			for (j = 0; j < imgSize.width; j++)
+				((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
+
+		cvShowImage("Histogram match...", cvImg);
+		get_hist1(img, imgSize.width, imgSize.height, 2);
+	}
 	cvWaitKey(0);
 	cvDestroyWindow(argv[1]);
 	cvReleaseImage(&cvImg);
