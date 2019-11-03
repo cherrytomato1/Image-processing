@@ -142,10 +142,13 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 	{
 	case 0:
 		cvShowImage("Original Histogram", imgHisto);
+		break;
 	case 1:
 		cvShowImage("Target Histogram", imgHisto);
+		break;
 	case 2:
 		cvShowImage("Result Histogram", imgHisto);
+		break;
 	}
 
 
@@ -302,8 +305,9 @@ int main(int argc, char* argv[])
 	read_unmatrix(imgSize.width, imgSize.height, img, argv[1]);
 
 
-	if(*argv[4]=='-1')
+	if(atoi(argv[4])==0)
 	{
+		printf("equal\n		");
 		cvImg = cvCreateImage(imgSize, 8, 1);
 		for (i = 0; i < imgSize.height; i++)
 			for (j = 0; j < imgSize.width; j++)
@@ -321,10 +325,13 @@ int main(int argc, char* argv[])
 				((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
 
 		cvShowImage("histoequals...", cvImg);			//이미지 열기
+
+		get_hist1(img, imgSize.width, imgSize.height, 1);
 	}
 
 	else 
 	{
+		printf("else...\n");
 		imgSize2.width = atoi(argv[5]);
 		imgSize2.height = atoi(argv[6]);
 		img2 = uc_alloc(imgSize2.width, imgSize2.height);
