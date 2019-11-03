@@ -27,6 +27,9 @@
 		9	:	원형 모자이크				모자이크 부분 선택(0,1)				모자이크 사이즈, 좌표, 반지름 입력받아 좌표로부터 입력받은
 																				반지름을 갖는 원을 그려 그 픽셀을 모자이크 하거나 해당 픽셀을
 																				제외한 전체 부분을 모자이크 처리함.
+		10	:	가우시안 난수발생 이미지										원래 영상을 가우시안 난수가 들어간 이미지로 출력, 저장
+		11	:	가우시안 난수 영상 덧셈		더할 페이지 수						가우시안 난수를 발생 시킨 영상을 원하는 페이지 만큼 더한다.
+																				많이 더할수록 가우시안 노이즈가 줄어든 영상이 출력된다.
 
 */
 
@@ -443,6 +446,8 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 	scanf_s("%d", &locX);
 	scanf_s("%d", &locY);
 
+	//i = 블럭 단위 row, j = 블럭 단위 col
+
 	for (i = 0; i < row; i += block)
 		for (j = 0; j < col; j += block)
 		{
@@ -508,8 +513,10 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 double uniform()
 {
 	return((double)(rand() % RAND_MAX) / RAND_MAX - 0.5);
+	//가우시안 난수 발생을 위한 값 
 }
 
+//가우시안 난수 발생
 double gaussian()
 {
 
@@ -543,6 +550,7 @@ double gaussian()
 	return (gaus);
 }
 
+//모든 이미지에 가우시안 난수(-1~1 * 50 )의 값을 추가함( 오버 및 언더플로 방지를 위한 정수형 더블포인터 결과 받음)
 double noisedImage(uchar** img, int** res, int row, int col)
 {
 	double sum = 0;
@@ -555,7 +563,7 @@ double noisedImage(uchar** img, int** res, int row, int col)
 
 	return 0;
 }
-
+//원하는 페이지 만큼 가우시안 난수 발생
 void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 {
 	int** tmp;
@@ -580,40 +588,6 @@ void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 }
 
 
-void make_Mask(int mSize, double **mask, int flag)
-{
-
-	int i, j;
-
-	double gausMask[3][3] =		{ 1 / 16, 2 / 16, 1 / 16,
-								  2 / 16, 4 / 16, 2 / 16, 
-								  1 / 16, 2 / 16, 1 / 16 };
-	double aveMask[3][3] =		{ 1 / 9, 1 / 9, 1 / 9, 
-								  1 / 9, 1 / 9, 1 / 9, 
-								  1 / 9, 1 / 9, 1 / 9 };
-	printf("now filtering\n");
-	switch (flag)
-	{
-		//마스크가 가르키는 주소를 원하는 마스크로 대입
-	case 0 :
-		for (i = 0; i < mSize; i++)
-			for (j = 0; j < mSize; j++)
-			{
-				mask[i][j] = gausMask[i][j];
-				printf("%lf %d %d , ", mask[i][j], i, j);
-			}
-		break;
-	case 1 :
-		for (i = 0; i < mSize; i++)
-			for (j = 0; j < mSize; j++)
-				mask[i][j] = aveMask[i][j];
-		break;
-	default :
-		printf("mask number wrong...");
-		exit(1);
-	}
-	printf("now masking\n");
-}
 
 
 void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, uchar** res)
@@ -623,7 +597,8 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 	int margin, indexX, indexY;
 	double sum, coeff;
 
-	margin = (int)(F_length / 2);
+	//여백 공간
+	margin = (int)(F_length / 2);	
 
 	for (i = 0; i < size_y; i++)
 		for (j = 0; j < size_x; j++)
@@ -658,6 +633,38 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 			res[i][j] = (uchar)sum;
 		}
 }
+
+void make_Mask(int mSize, double** mask, int flag)
+{
+
+	int i, j;
+
+	double gausMask[3][3] = { 1 / 16., 2 / 16., 1 / 16.,
+							  2 / 16., 4 / 16., 2 / 16.,
+							  1 / 16., 2 / 16., 1 / 16. };
+	double aveMask[3][3] = { 1 / 9., 1 / 9., 1 / 9.,
+							 1 / 9., 1 / 9., 1 / 9.,
+							 1 / 9., 1 / 9., 1 / 9. };
+
+	switch (flag)
+	{
+		//마스크가 가르키는 주소를 원하는 마스크로 대입
+	case 0:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = gausMask[i][j];
+		break;
+	case 1:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = aveMask[i][j];
+		break;
+	default:
+		printf("mask number wrong...");
+		exit(1);
+	}
+}
+
 
 void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
 {
@@ -752,8 +759,8 @@ int main(int argc, char* argv[])
 			break;
 
 		case 10:
-			//noisedImage(img, res, row, col);
-			//break;
+			noisedImage(img, res, row, col);
+			break;
 
 		case 11:
 			noisedImage2(img, res, row, col,arg0);
