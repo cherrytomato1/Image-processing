@@ -121,20 +121,21 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 
 	tp = X_Size * Y_Size;
 
-	for (i = 0; i < 256; i++)				//히스토그램 값 초기화
+	for (i = 0; i < 256; i++)				//히스토그램 배열 초기화
 		histogram[i] = 0;
 
-	for (i = 0; i < Y_Size; i++)			//히스토그램 값 입력
+	//img[i][j]가 갖고 있는 그레이 레벨에 해당하는 히스토그램 값을 ++함
+	for (i = 0; i < Y_Size; i++)			
 		for (j = 0; j < X_Size; j++)
 			histogram[img[i][j]]++;
 
-	// Find the maximum histogram value 히히스토그램 최댓값 찾기 가장큰 값을 찾아냄
+	// Find the maximum histogram value 히히스토그램 최댓값 찾기(정규화를 위해)
 	tmp1 = 0;
 	for (i = 0; i < 256; ++i)
 	{
 		tmp1 = tmp1 > histogram[i] ? tmp1 : histogram[i];
 	}
-	//최대 값을 1로 하고 나머지 값들을 최대 값에 비례해서 크기를 만듬 0~255
+	//최대 값에 비례해서 정규화 (0~255)
 	printf("\n\nHisto %d \n\n\n", mod);
 	for (i = 0; i < 256; ++i)
 	{
@@ -157,7 +158,7 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 	}
 
 
-	//모든 히스토그램을 더하여 다음 히스토그램
+	//모든 히스토그램을 더하여 CDF 만들기
 	cdfOfHisto[0] = histogram[0];
 	printf("\n\ncdfHisto %d \n\n\n", mod);
 	for (i = 1; i < 256; i++)
@@ -166,12 +167,14 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		printf("%d, ", cdfOfHisto[i]);
 	}
 	// Draw the CDF of Histogram
-	//최대 히스토그램 값을(중첩된 마지막 값) t,p로 지정
+	//최대 히스토그램 값을(중첩된 마지막 값) tmp로 지정
 	tmp1 = (double)cdfOfHisto[255];
-	//그와 비례하게 나누어 값 입력(0~255)
+
+	//히스토그램 정규화(0~255) 및 출력
 	printf("\n\ncdfHisto Temp%d \n\n\n", mod);
 	for (i = 0; i < 256; ++i)
 	{
+		
 		tmp = (int)255 * (cdfOfHisto[i] / tmp1);
 		printf("%d ,", tmp);
 		cvLine(cdfImgHisto, cvPoint(i, 255), cvPoint(i, 256 - tmp), CV_RGB(255, 255, 255), 1, 8, 0);
@@ -211,8 +214,10 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 	cvReleaseImage(&imgHisto);						//메모리 해제
 	cvReleaseImage(&cdfImgHisto);					//메모리 해제
 
-	if (mod == 0)									//mod 0일 때 cdf를 역변환하여 대입 평활화 수행(오리지날 이미지)
-		for (i = 0; i < Y_Size; ++i)				//대입하는 것 자체가 역변환 한 후에 진행 하는 것임
+	//mod 0일 때 cdf를 역변환하여 대입 평활화 수행(오리지날 이미지)
+	//대입하는 것 자체가 역변환 하는 동작을 수행함
+	if (mod == 0)									
+		for (i = 0; i < Y_Size; ++i)				
 			for (j = 0; j < X_Size; ++j)
 				img[i][j] = histogramEqual[img[i][j]];
 	
@@ -257,7 +262,7 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 	for (i = 0; i < 256; ++i)
 		cvLine(matchImg, cvPoint(i, 255), cvPoint(i, 255 - histogramMatch[i]), CV_RGB(255, 255, 255), 1, 8, 0);
 
-	cvShowImage("0eon", matchImg);
+	cvShowImage("역변환된 히스토그램", matchImg);
 	/*
 		histogramMatch 매칭된 그것?>???????????
 	
@@ -365,7 +370,7 @@ int main(int argc, char* argv[])
 
 		cvShowImage("histoequals...", cvImg);			//이미지 열기
 
-		get_hist1(img, imgSize.width, imgSize.height, 1);
+		get_hist1(img, imgSize.width, imgSize.height, 2);
 	}
 
 	else 
