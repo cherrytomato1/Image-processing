@@ -196,7 +196,7 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		t = (int)ceil(((cdfOfHisto[i] - cdfOfHisto[0]) * 255.0) / range);
 		histogramEqual[i] = (t < 0) ? 0 : (t > 255) ? 255 : t;
 		printf("%d, ", histogramEqual[i]);
-		//역변환 == 평활화(역함수 적용)
+		//정규화.
 	}
 	//히스토그램의 평활화ㄹㄴ 작업
 	//ceil : 올림함수, 매개변수 실수형 1개
@@ -221,19 +221,52 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 	int histogramMatch[256];
 	float diff;
 
+	CvSize matchSize;
+	IplImage* matchImg;
+
+	matchSize.width = 256;
+	matchSize.height = 256;
+
+
+	
+	matchImg = cvCreateImage(matchSize, 8, 1);
+	//이미지 초기화
+	for (i = 0; i < matchSize.height; i++)
+		for (j = 0; j < matchSize.width; j++)
+			((uchar*)(matchImg->imageData + matchImg->widthStep * i))[j] = 0;
+
+
 	printf("Start HistoGram Specification \n");
 
 	for (i = 0; i < 256; i++)
 	{
-		histogramMatch[i] = 0;
+		histogramMatch[i] = 0;	
 		for (j = 0; j < 256; j++)
 			if ((i - histogramSpec[j]) > 0)
+			{
 				histogramMatch[i] = j;
+			}
 	}
+	//이것도 역변환임
 
+	for (i = 0; i < 256; ++i)
+		cvLine(matchImg, cvPoint(i, 255), cvPoint(i, 255 - histogramMatch[i]), CV_RGB(255, 255, 255), 1, 8, 0);
+
+	cvShowImage("0eon", matchImg);
+	/*
+		histogramMatch 매칭된 그것?>???????????
+	
+	*/
+	/*
 	for (i = 0; i < Y_Size; ++i)
 		for (j = 0; j < X_Size; ++j)
 			img[i][j] = histogramMatch[img[i][j]];
+
+			*/
+
+	for (i = 0; i < Y_Size; ++i)
+		for (j = 0; j < X_Size; ++j)
+			img[i][j] = histogramSpec[img[i][j]];					//들어가는 것 자체가 역변환임
 
 }
 
@@ -305,7 +338,7 @@ int main(int argc, char* argv[])
 	read_unmatrix(imgSize.width, imgSize.height, img, argv[1]);
 
 
-	if(atoi(argv[4])==0)
+	if(atoi(argv[4])==-1)
 	{
 		printf("equal\n		");
 		cvImg = cvCreateImage(imgSize, 8, 1);
@@ -369,7 +402,8 @@ int main(int argc, char* argv[])
 		get_hist1(img2, imgSize2.width, imgSize2.height, 1);
 
 		//역변환된 타겟 히스토그램 cdf를 평활화된 원본 이미지에 대입
-		get_Match(img, imgSize.width, imgSize.height, histogramEqual);
+//		get_Match(img, imgSize.width, imgSize.height, histogramEqual);
+		get_Match(img, imgSize.width, imgSize.height, tmpCDF);
 
 		for (i = 0; i < imgSize.height; i++)
 			for (j = 0; j < imgSize.width; j++)
