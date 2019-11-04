@@ -590,7 +590,7 @@ void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 
 
 
-void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, uchar** res)
+void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, uchar** res,int val)
 {
 	int i, j, x, y;
 
@@ -624,7 +624,7 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 				}
 			}
 
-			//sum+=128;
+			sum+=val;
 
 			if (sum < 0)
 				sum = 0;
@@ -634,10 +634,10 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 		}
 }
 
-void make_Mask(int mSize, double** mask, int flag)
+int make_Mask(int mSize, double** mask, int flag)
 {
 
-	int i, j;
+	int i, j,sum=0;
 
 	double gausMask[3][3] =		{ 1 / 16., 2 / 16., 1 / 16.,
 								  2 / 16., 4 / 16., 2 / 16.,
@@ -669,6 +669,9 @@ void make_Mask(int mSize, double** mask, int flag)
 	double laplace8Mask[3][3] = { -1., -1., -1.,
 								  -1.,  8., -1.,
 								  -1., -1., -1. };
+	double embosMask[3][3] =	{ -1.,  0.,  0.,
+								   0.,  0.,  0.,
+								   0.,  0.,  1. };
 
 	switch (flag)
 	{
@@ -731,6 +734,12 @@ void make_Mask(int mSize, double** mask, int flag)
 	case 10:
 		for (i = 0; i < mSize; i++)
 			for (j = 0; j < mSize; j++)
+				mask[i][j] = embosMask[i][j];
+		sum = 128;
+		break;
+	case 11:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
 				mask[i][j] = sobelXMask[i][j]+sobelYMask[i][j];
 		break;
 	default:
@@ -744,6 +753,7 @@ void make_Mask(int mSize, double** mask, int flag)
 			printf(" %2.0lf ", mask[i][j]);
 		printf(" }\n");
 	}
+	return sum;
 
 }
 
@@ -751,16 +761,16 @@ void make_Mask(int mSize, double** mask, int flag)
 void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
 {
 	int block_size = 3, i;
-
+	int bg = 0;
 	double **mask;
 
 	mask = (double **)calloc(block_size, sizeof(double*));
 	for (i = 0; i < block_size; i++)
 		mask[i] = (double *)calloc(block_size, sizeof(double));
 
-	make_Mask(block_size, mask, flag);
+	bg=make_Mask(block_size, mask, flag);
 
-	convolution(mask, block_size, x_size, y_size, img, res);
+	convolution(mask, block_size, x_size, y_size, img, res, bg);
 }
 
 int main(int argc, char* argv[])
