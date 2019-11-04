@@ -639,12 +639,36 @@ void make_Mask(int mSize, double** mask, int flag)
 
 	int i, j;
 
-	double gausMask[3][3] = { 1 / 16., 2 / 16., 1 / 16.,
-							  2 / 16., 4 / 16., 2 / 16.,
-							  1 / 16., 2 / 16., 1 / 16. };
-	double aveMask[3][3] = { 1 / 9., 1 / 9., 1 / 9.,
-							 1 / 9., 1 / 9., 1 / 9.,
-							 1 / 9., 1 / 9., 1 / 9. };
+	double gausMask[3][3] =		{ 1 / 16., 2 / 16., 1 / 16.,
+								  2 / 16., 4 / 16., 2 / 16.,
+								  1 / 16., 2 / 16., 1 / 16. };
+	double aveMask[3][3] =		{ 1 / 9., 1 / 9., 1 / 9.,
+								 1 / 9., 1 / 9., 1 / 9.,
+								 1 / 9., 1 / 9., 1 / 9. };
+	double sobelXMask[3][3] =	{ -1., -2., -1.,
+								   0.,  0.,  0.,
+								   1.,  2.,  1. };
+	double sobelYMask[3][3] =	{ -1.,  0.,  1.,
+								  -2.,  0.,  2.,
+								  -1.,  0.,  1. };
+	double prewittXMask[3][3] = { -1., -1., -1.,
+								   0.,  0.,  0.,
+								   1.,  1.,  1. };
+	double prewittYMask[3][3] = { -1.,  0.,  1.,
+								  -1.,  0.,  1.,
+								  -1.,  0.,  1. };
+	double robertsXMask[3][3] = { -1.,  0.,  0.,
+								   0.,  1.,  0.,
+								   0.,  0.,  0. };
+	double robertsYMask[3][3] = {  0.,  0., -1.,
+								   0.,  1.,  0.,
+								   0.,  0.,  0. };
+	double laplace4Mask[3][3] = {  0., -1.,  0.,
+								  -1.,  4., -1.,
+								   0., -1.,  0. };
+	double laplace8Mask[3][3] = { -1., -1., -1.,
+								  -1.,  8., -1.,
+								  -1., -1., -1. };
 
 	switch (flag)
 	{
@@ -658,6 +682,51 @@ void make_Mask(int mSize, double** mask, int flag)
 		for (i = 0; i < mSize; i++)
 			for (j = 0; j < mSize; j++)
 				mask[i][j] = aveMask[i][j];
+		break;
+	case 2:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = sobelXMask[i][j];
+		break;
+	case 3:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = sobelYMask[i][j];
+		break;
+
+	case 4:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = prewittXMask[i][j];
+		break;
+
+	case 5:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = prewittYMask[i][j];
+		break;
+
+	case 6:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = robertsXMask[i][j];
+		break;
+	
+	case 7:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = robertsYMask[i][j];
+		break;
+
+	case 8:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = laplace4Mask[i][j];
+
+	case 9:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = laplace8Mask[i][j];
 		break;
 	default:
 		printf("mask number wrong...");
