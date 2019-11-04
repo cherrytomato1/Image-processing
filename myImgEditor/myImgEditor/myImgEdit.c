@@ -648,9 +648,9 @@ void make_Mask(int mSize, double** mask, int flag)
 	double sobelXMask[3][3] =	{ -1., -2., -1.,
 								   0.,  0.,  0.,
 								   1.,  2.,  1. };
-	double sobelYMask[3][3] =	{ -1.,  0.,  1.,
-								  -2.,  0.,  2.,
-								  -1.,  0.,  1. };
+	double sobelYMask[3][3] =	{  1.,  0., -1.,
+								   2.,  0., -2.,
+								   1.,  0., -1. };
 	double prewittXMask[3][3] = { -1., -1., -1.,
 								   0.,  0.,  0.,
 								   1.,  1.,  1. };
@@ -677,7 +677,7 @@ void make_Mask(int mSize, double** mask, int flag)
 		for (i = 0; i < mSize; i++)
 			for (j = 0; j < mSize; j++)
 				mask[i][j] = gausMask[i][j];
-		break;
+		break;	
 	case 1:
 		for (i = 0; i < mSize; i++)
 			for (j = 0; j < mSize; j++)
@@ -728,10 +728,23 @@ void make_Mask(int mSize, double** mask, int flag)
 			for (j = 0; j < mSize; j++)
 				mask[i][j] = laplace8Mask[i][j];
 		break;
+	case 10:
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = sobelXMask[i][j]+sobelYMask[i][j];
+		break;
 	default:
 		printf("mask number wrong...");
 		exit(1);
 	}
+	for (i = 0; i < mSize; i++)
+	{
+		printf("{");
+		for (j = 0; j < mSize; j++)
+			printf(" %2.0lf ", mask[i][j]);
+		printf(" }\n");
+	}
+
 }
 
 
