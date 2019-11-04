@@ -29,7 +29,7 @@
 #define unsigned char uchar
 
 // 정수형 크기 설정 히스토그램(확률분포함수), CDF(누적분포함수), 역변환된(CDF)
-int histogram[256], cdfOfHisto[256], histogramEqual[256], tmpCDF[256];
+int histogram[256], cdfOfHisto[256], histogramEqual[256], tmpCDF[256], val=0,mytemp;
 
 // 문자형 포인터 생성
 uchar** uc_alloc(int size_x, int size_y)
@@ -129,12 +129,16 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		for (j = 0; j < X_Size; j++)
 			histogram[img[i][j]]++;
 
+
+
 	// Find the maximum histogram value 히히스토그램 최댓값 찾기(정규화를 위해)
 	tmp1 = 0;
 	for (i = 0; i < 256; ++i)
 	{
 		tmp1 = tmp1 > histogram[i] ? tmp1 : histogram[i];
 	}
+
+
 	//최대 값에 비례해서 정규화 (0~255)
 	printf("\n\nHisto %d \n\n\n", mod);
 	for (i = 0; i < 256; ++i)
@@ -206,8 +210,18 @@ void get_hist1(uchar** img, int X_Size, int Y_Size, int mod)
 		printf("%d, ", histogramEqual[i]);
 		//정규화.
 	}
+	
+	for (i = 0; i < 256; i++)
+	{
+		if (histogramEqual[i] > 127)
+		{
+			val = i;
+			break;
+		}
+	}
 	//히스토그램의 평활화ㄹㄴ 작업
 
+	
 
 	//if(mod==0) cvShowImage("역변환", rvsHisto);
 
@@ -246,33 +260,33 @@ void get_Match(uchar** img, int X_Size, int Y_Size, int histogramSpec[256])
 			((uchar*)(matchImg->imageData + matchImg->widthStep * i))[j] = 0;
 
 
-	printf("Start HistoGram Specification \n");
+printf("Start HistoGram Specification \n");
 
-	//지정영상의 CDF를 다시 역변환하는 과정
-	for (i = 0; i < 256; i++)
-	{
-		histogramMatch[i] = 0;	
-		for (j = 0; j < 256; j++)
-			if ((i - histogramSpec[j]) > 0)
-				histogramMatch[i] = j;
-	}
+//지정영상의 CDF를 다시 역변환하는 과정
+for (i = 0; i < 256; i++)
+{
+	histogramMatch[i] = 0;
+	for (j = 0; j < 256; j++)
+		if ((i - histogramSpec[j]) > 0)
+			histogramMatch[i] = j;
+}
 
-	for (i = 0; i < 256; ++i)
-		cvLine(matchImg, cvPoint(i, 255), cvPoint(i, 255 - histogramMatch[i]), CV_RGB(255, 255, 255), 1, 8, 0);
+for (i = 0; i < 256; ++i)
+	cvLine(matchImg, cvPoint(i, 255), cvPoint(i, 255 - histogramMatch[i]), CV_RGB(255, 255, 255), 1, 8, 0);
 
-	cvShowImage("역변환된 히스토그램", matchImg);
+cvShowImage("역변환된 히스토그램", matchImg);
 
-	//역변환하며 이미지 대응
-	for (i = 0; i < Y_Size; ++i)
-		for (j = 0; j < X_Size; ++j)
-			img[i][j] = histogramMatch[img[i][j]];		
+//역변환하며 이미지 대응
+for (i = 0; i < Y_Size; ++i)
+	for (j = 0; j < X_Size; ++j)
+		img[i][j] = histogramMatch[img[i][j]];
 
-			
-	//역변환하며 이미지 대응
-	/*for (i = 0; i < Y_Size; ++i)
-		for (j = 0; j < X_Size; ++j)
-			img[i][j] = histogramSpec[img[i][j]];					
-			*/
+
+//역변환하며 이미지 대응
+/*for (i = 0; i < Y_Size; ++i)
+	for (j = 0; j < X_Size; ++j)
+		img[i][j] = histogramSpec[img[i][j]];
+		*/
 
 }
 
@@ -311,7 +325,7 @@ void constrastStreching(uchar** img, uchar** outImg, int X_Size, int Y_Size)
 
 	scaleFactor = 255.0 / (double)(max - min);
 
-	for (i = min ;i < max; i++)
+	for (i = min; i < max; i++)
 	{
 		tmp = (i - min) * scaleFactor;
 
@@ -326,13 +340,30 @@ void constrastStreching(uchar** img, uchar** outImg, int X_Size, int Y_Size)
 			outImg[i][j] = LUT[img[i][j]];
 }
 
+double average(uchar** img, int row, int col)
+{
+	double sum = 0, avg;
+	int i, j;
+
+	for (i = 0; i < row; i++)
+	{
+		for (j = 0; j < col; j++)
+			sum += img[i][j];
+	}
+
+	avg = sum / ((double)row * col);
+
+	printf("avg =%lf\n", avg);
+
+	return avg;
+}
 
 int main(int argc, char* argv[])
 {
 	int i, j;
-	IplImage* cvImg,*cvImg2;
-	CvSize imgSize,imgSize2;
-	uchar** img, ** img2, **outimg;
+	IplImage* cvImg, * cvImg2;
+	CvSize imgSize, imgSize2;
+	uchar** img, ** img2, ** outimg;
 	if (argc != 7)
 	{
 		printf("arg error \n");
@@ -343,8 +374,34 @@ int main(int argc, char* argv[])
 	img = uc_alloc(imgSize.width, imgSize.height);
 	read_unmatrix(imgSize.width, imgSize.height, img, argv[1]);
 
+	if (atoi(argv[4]) == -2)			//중간시험
+	{
+		get_hist1(img, imgSize.width, imgSize.height, 1);
 
-	if(atoi(argv[4])==-1)
+		cvImg = cvCreateImage(imgSize, 8, 1);
+
+		printf("\n\nHistoEQUAL == %d, average == % lf\n",val, average(img,imgSize.width,imgSize.height));
+
+		for(i=0;i< imgSize.width;i++)
+			for (j = 0; j < imgSize.height; j++)
+			{
+				if (img[i][j] < histogramEqual[128])
+					img[i][j] = 0;
+				else
+					img[i][j] = 255;
+			}
+		cvNamedWindow(argv[1], 1);				//윈도우 열기
+
+		cvShowImage(argv[1], cvImg);			//이미지 열기
+
+		for (i = 0; i < imgSize.height; i++)
+			for (j = 0; j < imgSize.width; j++)
+				((uchar*)(cvImg->imageData + cvImg->widthStep * i))[j] = img[i][j];
+
+		cvShowImage("go", cvImg);			//이미지 열기
+	}
+
+	else if(atoi(argv[4])==-1)
 	{
 		printf("equal\n		");
 		cvImg = cvCreateImage(imgSize, 8, 1);

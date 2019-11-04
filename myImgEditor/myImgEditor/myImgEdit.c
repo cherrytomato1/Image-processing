@@ -775,7 +775,6 @@ int make_Mask(int mSize, double** mask, int flag)
 
 }
 
-
 void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
 {
 	int block_size = 3, i;
@@ -789,6 +788,94 @@ void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
 	bg=make_Mask(block_size, mask, flag);
 
 	convolution(mask, block_size, x_size, y_size, img, res, bg);
+}
+
+void Bubble_sort(uchar* Sort, uchar* median_value, int Mode, int filterSize)
+{
+	int i, x;
+	uchar temp, swap;
+	for (x = 0; x < filterSize; x++)
+	{
+		temp = Sort[x];
+		for (i = x; i < filterSize - 1; i++)
+		{
+			if (temp >= Sort[i + 1])
+			{
+				swap = temp;
+				temp = Sort[i + 1];
+				Sort[i + 1] = swap;
+			}
+		}
+		Sort[x] = temp;
+	}
+	if (Mode == -1)
+		*median_value = (uchar)Sort[0]; // median filter의 중앙값을 필터내의 최솟값으로 설정
+	else if (Mode == 0)
+		*median_value = (uchar)Sort[filterSize / 2]; // median filter의 중앙값을 필터내의 중간값으로 설정
+	else if (Mode == 1)
+		*median_value = (uchar)Sort[filterSize - 1]; // median filter의 중앙값을 필터내의 최대값으로 설정
+	printf("%d  ,", *median_value);
+
+}
+
+void median(uchar** inImg, uchar** outImg, int ROW, int COL, int Mode, int filterSize) // Median Filtering
+{
+	int i, j, x, y, z, count = 0;
+	uchar median_value; // 필터의 중앙값
+	uchar* Sort;
+	Sort = (uchar*)malloc(filterSize * filterSize * sizeof(uchar)); // 필터의 마스크값을 정렬해 저장할 포인터 배열 동적할당
+
+
+	for (i = 0; i < ROW; i++)
+		for (j = 0; j < COL; j++)
+			outImg[i][j] = inImg[i][j];
+
+	for (i = 0; i < ROW - filterSize; i++)
+		for (j = 0; j < COL - filterSize; j++)
+		{
+			for (x = 0; x < filterSize; x++)
+				for (y = 0; y < filterSize; y++)	
+					Sort[filterSize * x + y] = inImg[i + x][j + y];
+			Bubble_sort(Sort, &median_value, 0, filterSize);
+			outImg[i + 1][j + 1] = median_value;
+		}
+	free(Sort);
+}
+
+void median2(uchar** inImg, uchar** outImg, int ROW, int COL, int Mode, int filterSize) // Median Filtering
+{
+	int i, j, x, y, z, count = 0;
+	uchar median_value; // 필터의 중앙값
+	uchar* Sort;
+
+	Sort = (uchar*)malloc(filterSize * sizeof(uchar)); // 필터의 마스크값을 정렬해 저장할 포인터 배열 동적할당
+
+	printf("malloc done\n");
+
+	for (i = 0; i < ROW; i++)
+		for (j = 0; j < COL; j++)
+			outImg[i][j] = inImg[i][j];
+
+	for (i = 0; i < ROW; i++)
+		for (j = 0; j < COL - filterSize; j++)
+		{
+			//printf("debug1 \n");
+			for (y = 0; y < filterSize; y++)
+			{
+				Sort[y] = inImg[i][j + y];
+				//printf("%d ", Sort[y]);
+			}
+			//printf("\n");
+			
+			Bubble_sort(Sort, &median_value, 0, filterSize);
+			outImg[i][j + (filterSize/2)] = median_value;
+			//outImg[i][j + (filterSize / 2)] = 128;
+			//printf("%d ", j + filterSize/2);
+			//printf("%d, ", median_value);
+		}
+	
+	//free(Sort);
+	printf("done\n");
 }
 
 int main(int argc, char* argv[])
@@ -879,6 +966,16 @@ int main(int argc, char* argv[])
 		case 12 :
 			
 			Filtering(img, res, row, col, arg0);
+			break;
+
+		case 13 :
+
+			median(img, res, row, col, arg0,3);
+			break;
+
+		case 14:
+
+			median2(img, res, row, col, 0,arg0);
 			break;
 
 		default : 
