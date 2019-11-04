@@ -617,7 +617,7 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 					if (indexX < 0)
 						indexX = -indexX;
 					else if (indexX >= size_x)
-						indexX = (2 * size_x - indexX - 1);
+						indexX = (2 * size_x - indexX - 1);			//외곽처리( 대칭기법 )
 
 					sum += h[y][x] * (double)img[indexY][indexX];
 
@@ -637,7 +637,14 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 int make_Mask(int mSize, double** mask, int flag)
 {
 
-	int i, j,sum=0;
+	int i, j,sum=0,mod=0;
+	//sum == 백그라운드로 가져갈 값
+
+	if (flag >= 100)
+	{
+		flag -= 100;
+		mod = 1;
+	}
 
 	double gausMask[3][3] =		{ 1 / 16., 2 / 16., 1 / 16.,
 								  2 / 16., 4 / 16., 2 / 16.,
@@ -737,14 +744,24 @@ int make_Mask(int mSize, double** mask, int flag)
 				mask[i][j] = embosMask[i][j];
 		sum = 128;
 		break;
-	case 11:
+	case 23:
 		for (i = 0; i < mSize; i++)
 			for (j = 0; j < mSize; j++)
 				mask[i][j] = sobelXMask[i][j]+sobelYMask[i][j];
 		break;
+	case 99 :
+		for (i = 0; i < mSize; i++)
+			for (j = 0; j < mSize; j++)
+				mask[i][j] = laplace8Mask[i][j];
+	//	mask[1][1] += 1;
+		break;
 	default:
 		printf("mask number wrong...");
 		exit(1);
+	}
+	if (mod = 1)
+	{
+		mask[1][1] += 1;
 	}
 	for (i = 0; i < mSize; i++)
 	{
@@ -753,6 +770,7 @@ int make_Mask(int mSize, double** mask, int flag)
 			printf(" %2.0lf ", mask[i][j]);
 		printf(" }\n");
 	}
+	
 	return sum;
 
 }
