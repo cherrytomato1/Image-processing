@@ -1091,34 +1091,44 @@ int fft_2d(double** X_re, double** X_im, int N, int Mode)
 
 }
 
-void fftInit(uchar** img, uchar** res,int row, int col, int N)
+void fftInit(uchar** img, uchar** res,int row, int col, int Mode)
 {
-	int Mode,i,j;
-	double** t_img, ** t_res;
-	t_img = d_alloc(row,col);
-	t_res = d_alloc(row, col);
+	int i,j;
+	double** t_img, ** t_tmp;
+	t_img = d_alloc(row, col);
+	t_tmp = d_alloc(row, col);
 
-
-	for (i = 0; i < row; i++)
-		for (j = 0; j < col; j++)
-			t_img[i][j] = (double)img[i][j];
-
-	for (i = 0; i < row; i++)
-		for (j = 0; j < col; j++)
-			t_res[i][j] = (double)res[i][j];
-
-	printf("insert mode.. . \n");
-	scanf_s("%d", &Mode);
-
-	fft_2d(t_img, t_res, N, Mode);
 
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 		{
-		//	res[i][j] = (uchar)t_res[i][j];
-			//printf(" %lf, ", t_res[i][j]);
+			t_img[i][j] = (double)img[i][j];
+			//printf(" %lf, ", t_img[i][j]);
+		}
+
+	for (i = 0; i < row; i++)
+		for (j = 0; j < col; j++)
+		{
+			t_tmp[i][j] = 0.;
+			//printf(" %lf ,", t_tmp[i][j]);
+		}
+
+	fft_2d(t_img, t_tmp, row, Mode);
+
+	for (i = 0; i < row; i++)
+		for (j = 0; j < col; j++)
+		{
+			if (t_img[i][j] > 255.)
+				t_img[i][j] = 255.;
+			else if (t_img[i][j] < 0.)
+				t_img[i][j] = 0.;
+
+			res[i][j] = (uchar)t_img[i][j];
+			//printf(" %d, ", res[i][j]);
 		}
 }
+
+/*
 
 void fftInit(uchar** img, uchar** res, int row, int col, int Mode)
 {
@@ -1171,6 +1181,8 @@ void fftInit(uchar** img, uchar** res, int row, int col, int Mode)
 		}
 
 }
+
+*/
 int main(int argc, char* argv[])
 {
 	srand(time(NULL));
