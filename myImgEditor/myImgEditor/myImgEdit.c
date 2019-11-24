@@ -1267,19 +1267,24 @@ void Idct(int** Coeff, int** PEL) {
 	}
 }
 
+//fdct 연산 매개변수 입력박스, 출력박스
 void myFdct(int** PEL, int** Coeff)
 {
 	int u, v, x, y,N;
-
+	//변환 블록사이즈
 	int blockSize = 8;
 
-	double t[8][8] = { 0 };
+	//C(u), C(v) 정의
 	double cU = 0, cV = 0, temp,value;
 	
+	//변수 N 초기화 (x,y 가 같은경우 하나로 정의)
 	N = blockSize;
 
+
+	//모든 경우의 F(u,v) 연산을 위한 반복문 (기본 8*8)
 	for (v = 0; v < N; v++)
 	{
+		//C(v) 값 초기화
 		if (v == 0)
 			cV = 1. / sqrt(2);
 		else
@@ -1290,8 +1295,10 @@ void myFdct(int** PEL, int** Coeff)
 
 		for (u = 0; u < N; u++)
 		{
+			//매 F(u,v)에 대하여 두개의 시그마 연산의 합을 저장하는 변수 value 초기화
 			value = 0.;
 
+			//C(u) 초기화
 			if (u == 0)
 				cU = 1. / sqrt(2);
 			else
@@ -1301,17 +1308,22 @@ void myFdct(int** PEL, int** Coeff)
 
 			//printf("cU = .0%lf \n", cU);
 
+			//시그마 연산 이전 곱해지는 C(u),C(v)에 대한식 정의
 			temp =(cU * cV * 4.) / ((double)N * (double)N);
 
+			//시그마에 대한 반복문
 			for (y = 0; y < N; y++)
 			{
 				for (x = 0; x < N; x++)
 				{
-					value += (double)PEL[x][y] * cos((((2 * x) + 1) * (u * M_PI)) / (2 * N)) 
-						* cos((((2 * y) + 1) * (v * M_PI)) / (2 * N)) * 4 ;
+					//이후 수식 정리
+					value += (double)PEL[x][y] * cos((((2. * (double)x) + 1) * ((double)u * M_PI)) / (2. * (double)N))
+						* cos((((2. * (double)y) + 1.) * (v * M_PI)) / (2. * (double)N)) * 4. ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
+
+			//시그마 합산결과와 Cu,Cv 식 곱
 			Coeff[u][v] = (int)(value * temp);
 
 		//	printf("coeff[%d][%d] = %d \n", u, v, Coeff[u][v]);
@@ -1327,7 +1339,6 @@ void myIdct(int** Coeff, int** PEL) {
 
 	int blockSize = 8;
 
-	//double t[8][8] = { 0 };
 	double cU = 0, cV = 0, temp, value;
 
 	N = blockSize;
@@ -1368,65 +1379,84 @@ void myIdct(int** Coeff, int** PEL) {
 
 
 					value += cU*cV* (double)Coeff[u][v] * cos( ( ( (2 * (double)x) + 1 ) * ((double)u * M_PI ) ) / (2 * (double)N) )
-						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * (double)N ) );
+						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * (double)N ) ) * 4 ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
 			PEL[x][y] = (int)(value * temp);
 
-//			printf("PEL[%d][%d] = %d \n", x, y, PEL[x][y]);
+			printf("PEL[%d][%d] = %d \n", x, y, PEL[x][y]);
 
 		}
 	}
 }
 
+/*	
+	dct 변환을 위한 시작함수 - dct 변환 및 역변환 수행
+	매개변수 : 이미지 포인터, 결과 이미지 포인터, ROW, COL, DCT 변환 모드 (integer 버퍼, 수식)
+
+*/
 void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 {
 	int i, j, block = 8,x,y;
-	int** inBox, ** outBox;
+	//	입력 box(변환크기 /기본값 8), 중간출력 box, 결과 출력 box
+	int** inBox, ** outBox, **outBox2;
 
+	// box 메모리 할당
 	inBox = i_alloc(block,block);
 	outBox = i_alloc(block, block);
+	outBox2 = i_alloc(block, block);
 
+
+	//box 단위 반복
 	for (i = 0; i < row; i += block)
 		for (j = 0; j < col; j += block)
 		{
+			/*
+				매 단위 블록마다 box에 들어갈 내용을 그대로 복사 (블록 좌표 + 해당 픽셀좌표 대입)
+
+				
+			*/
 			for (y = 0; y < block && i + y < row - 1; y++)
 				for (x = 0; x < block && j + x < col - 1; x++)
 				{
 					inBox[y][x] = (int)img[i + y][j + x];
+
+					//불필요 작업( 오로지 출력)
 					outBox[y][x] = (int)img[i + y][j + x];
+					outBox2[y][x] = (int)img[i + y][j + x];
 				}
 
-			/*
-				tmp(합계)를 count(픽셀 개수)로 나누어 블럭 내 픽셀의 평균 값을 구함
-				이후 구해진 값을 블럭 내 모든 픽셀에 입력해 블럭 내 모든 픽셀이 같은 값을 갖게함.
-				최대 row와 col 초과시 break.
-			*/
-
+			// 어떤 변환을 사용할 것인지 매개변수를 통해 설정
+			
 			switch (Mode)
 			{
+				//case 0  : 미사용
 			case 0:
 
 //				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
 //				Fdct(inBox, outBox);
 
 				break;
+
+				//case 1 : integer 버퍼 사용
 			case 1 :
 	//			printf("IDCT ...outbox[%d][%d] = %d\n", i + y, j + x, inBox[y][x]);
-				myFdct(inBox, outBox);
+				Fdct(inBox, outBox);
 
-				Idct(outBox, outBox);
+				Idct(outBox, outBox2);
 				break;
+
+				//case 2 : 수식을 코드로 작성한 변환 사용, 변환 및 역변환
 
 			case 2:
 
 				//				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
-				Fdct(inBox, outBox);
+				myFdct(inBox, outBox);
 
 				//Idct(outBox, outBox);
 
-				myIdct(outBox, outBox); 
+				myIdct(outBox, outBox2); 
 
 
 				break;
@@ -1435,10 +1465,11 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 				exit(1);
 			}
 			
+			//박스단위로 변환된 이미지를 결과에 출력
 	
 			for (y = 0; y < block && i + y < row - 1; y++)
 				for (x = 0; x < block && j + x < col - 1; x++)
-					res[i + y][j + x] = (uchar)outBox[y][x];
+					res[i + y][j + x] = (uchar)outBox2[y][x];
 		}
 }
 
