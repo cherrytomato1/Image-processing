@@ -1234,7 +1234,7 @@ void Fdct(int** PEL, int** Coeff) {
 				dd += (long)t[k][i] * dct_buffer[j][k];
 			Coeff[j][i] = ((dd + 16384) >> 15);
 
-			printf("coeff[%d][%d] = %d \n", j, i, Coeff[j][i]);
+			//printf("coeff[%d][%d] = %d \n", j, i, Coeff[j][i]);
 		}
 	}
 }
@@ -1261,6 +1261,8 @@ void Idct(int** Coeff, int** PEL) {
 				dd += (long)t[k][i] * dct_buffer[k][j];
 		
 			PEL[i][j] = ((dd + 16384) / 32768);
+
+			printf("PEL[%d][%d] = %d \n", j, i, PEL[j][i]);
 		}
 	}
 }
@@ -1299,7 +1301,7 @@ void myFdct(int** PEL, int** Coeff)
 
 			//printf("cU = .0%lf \n", cU);
 
-			temp =(cU * cV * 4) / ((double)N * (double)N);
+			temp =(cU * cV * 4.) / ((double)N * (double)N);
 
 			for (y = 0; y < N; y++)
 			{
@@ -1318,6 +1320,64 @@ void myFdct(int** PEL, int** Coeff)
 	}
 
 
+}
+
+void myIdct(int** Coeff, int** PEL) {
+	int u, v, x, y, N;
+
+	int blockSize = 8;
+
+	//double t[8][8] = { 0 };
+	double cU = 0, cV = 0, temp, value;
+
+	N = blockSize;
+
+	for (y = 0; y < N; y++)
+	{
+		
+		//cV = 1./sqrt(2);
+		//printf("cV = .0%lf \n", cV);
+
+		for (x = 0; x < N; x++)
+		{
+			value = 0.;
+
+
+			//cU = 1. / sqrt(2);
+
+			//printf("cU = .0%lf \n", cU);
+
+			temp = 4. / ((double)N * (double)N);
+
+
+			//printf("temp = %lf \n ", temp);
+
+			for (v = 0; v < N; v++)
+			{
+				if (v == 0)
+					cV = 1. / sqrt(2);
+				else
+					cV = 1.;
+
+				for (u = 0; u < N; u++)
+				{
+					if (u == 0)
+						cU = 1. / sqrt(2);
+					else
+						cU = 1.;
+
+
+					value += cU*cV* (double)Coeff[u][v] * cos( ( ( (2 * (double)x) + 1 ) * ((double)u * M_PI ) ) / (2 * (double)N) )
+						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * (double)N ) );
+				}
+			}
+			//printf("value = %0.5lf \n ", value);
+			PEL[x][y] = (int)(value * temp);
+
+//			printf("PEL[%d][%d] = %d \n", x, y, PEL[x][y]);
+
+		}
+	}
 }
 
 void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
@@ -1364,7 +1424,9 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 				//				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
 				Fdct(inBox, outBox);
 
-				Idct(outBox, outBox);
+				//Idct(outBox, outBox);
+
+				myIdct(outBox, outBox); 
 
 
 				break;
