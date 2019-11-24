@@ -1334,15 +1334,20 @@ void myFdct(int** PEL, int** Coeff)
 
 }
 
+//idct 연산 매개변수 입력박스 출력박스
 void myIdct(int** Coeff, int** PEL) {
 	int u, v, x, y, N;
-
+	
+	//박스 사이즈
 	int blockSize = 8;
 
+	//cu, cv 정의
 	double cU = 0, cV = 0, temp, value;
 
+	//변수 N 정의 (박스 사이즈)
 	N = blockSize;
 
+	//모든 경우의 f(x,y) 연산을 위한 반복문 (기본 8*8)
 	for (y = 0; y < N; y++)
 	{
 		
@@ -1351,6 +1356,7 @@ void myIdct(int** Coeff, int** PEL) {
 
 		for (x = 0; x < N; x++)
 		{
+			//매 f(x,y)에 대하여 두개의 시그마 연산의 합을 저장하는 변수 value 초기화
 			value = 0.;
 
 
@@ -1358,6 +1364,8 @@ void myIdct(int** Coeff, int** PEL) {
 
 			//printf("cU = .0%lf \n", cU);
 
+			//시그마 연산 이전 곱해지는 식 정의
+			//반복문에 사용되는 변수가 없으므로 반복문 외부로 뺄 수 있음
 			temp = 4. / ((double)N * (double)N);
 
 
@@ -1365,6 +1373,7 @@ void myIdct(int** Coeff, int** PEL) {
 
 			for (v = 0; v < N; v++)
 			{
+				//C(v) 초기화
 				if (v == 0)
 					cV = 1. / sqrt(2);
 				else
@@ -1372,17 +1381,20 @@ void myIdct(int** Coeff, int** PEL) {
 
 				for (u = 0; u < N; u++)
 				{
+					//C(u) 초기화
 					if (u == 0)
 						cU = 1. / sqrt(2);
 					else
 						cU = 1.;
 
-
+					//합산 식
 					value += cU*cV* (double)Coeff[u][v] * cos( ( ( (2 * (double)x) + 1 ) * ((double)u * M_PI ) ) / (2 * (double)N) )
 						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * (double)N ) ) * 4 ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
+
+			//결과 대입
 			PEL[x][y] = (int)(value * temp);
 
 			printf("PEL[%d][%d] = %d \n", x, y, PEL[x][y]);
