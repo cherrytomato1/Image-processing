@@ -1233,6 +1233,8 @@ void Fdct(int** PEL, int** Coeff) {
 			for (k = 0; k < 8; k++)
 				dd += (long)t[k][i] * dct_buffer[j][k];
 			Coeff[j][i] = ((dd + 16384) >> 15);
+
+			printf("coeff[%d][%d] = %d \n", j, i, Coeff[j][i]);
 		}
 	}
 }
@@ -1280,27 +1282,37 @@ void myFdct(int** PEL, int** Coeff)
 			cV = 1. / sqrt(2);
 		else
 			cV = 1.;
+
+		//cV = 1./sqrt(2);
+		//printf("cV = .0%lf \n", cV);
+
 		for (u = 0; u < N; u++)
 		{
-			value = 0;
+			value = 0.;
+
 			if (u == 0)
 				cU = 1. / sqrt(2);
 			else
 				cU = 1.;
 
-			temp =(cU * cV * 4) / (N * N);
+			//cU = 1. / sqrt(2);
+
+			//printf("cU = .0%lf \n", cU);
+
+			temp =(cU * cV * 4) / ((double)N * (double)N);
 
 			for (y = 0; y < N; y++)
 			{
 				for (x = 0; x < N; x++)
 				{
-					value += PEL[x][y] * cos(((2 * x + 1) * (u * M_PI)) / (2 * N)) * cos(((2 * y + 1) * (v * M_PI)) / (2 * N));
+					value += (double)PEL[x][y] * cos((((2 * x) + 1) * (u * M_PI)) / (2 * N)) 
+						* cos((((2 * y) + 1) * (v * M_PI)) / (2 * N)) * 4 ;
 				}
 			}
+			//printf("value = %0.5lf \n ", value);
+			Coeff[u][v] = (int)(value * temp);
 
-			Coeff[u][v] = value * temp;
-
-
+		//	printf("coeff[%d][%d] = %d \n", u, v, Coeff[u][v]);
 
 		}
 	}
@@ -1344,7 +1356,7 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 	//			printf("IDCT ...outbox[%d][%d] = %d\n", i + y, j + x, inBox[y][x]);
 				myFdct(inBox, outBox);
 
-				Idct(inBox, outBox);
+				Idct(outBox, outBox);
 				break;
 
 			case 2:
