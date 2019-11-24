@@ -47,7 +47,16 @@
 #define MAX 255
 
 
-
+static int dct_buffer[8][8] = {
+	{4096,4096,4096,4096,4096,4096,4096,4096},
+	{5681,4816,3218,1130,-1130,-3218,-4816,-5681},
+	{5352,2217,-2217,-5352,-5352,-2217,2217,5352},
+	{4816,-1130,-5681,-3218,3218,5681,1130,-4816},
+	{4096,-4096,-4096,4096,4096,-4096,-4096,4096},
+	{3218,-5681,1130,4816,-4816,-1130,5681,-3218},
+	{2217,-5352,5352,-2217,-2217,5352,-5352,2217},
+	{1130,-3218,4816,-5681,5681,-4816,3218,-1130}
+};
 
 
 uchar** uc_alloc(int size_x, int size_y)
@@ -903,6 +912,14 @@ void median2(uchar** inImg, uchar** outImg, int ROW, int COL, int Mode, int filt
 	printf("done\n");
 }
 
+
+
+
+
+
+
+
+
 int rearrange(double* X, int N)
 {
 	int i, j, * power_of_2, * pos, stage, num_of_stages = 0;
@@ -933,7 +950,7 @@ int rearrange(double* X, int N)
 			}
 
 			temp = X[i];
-			X[i] - X[pos[i]];
+			X[i] = X[pos[i]];
 			X[pos[i]] = temp;
 			pos[pos[i]] = 1;
 		}
@@ -970,13 +987,14 @@ void fft(double* X_re, double* X_im, int N)
 			{
 				X_temp_re = X_re[m1] - X_re[m2];
 				X_temp_im = X_im[m1] - X_im[m2];
-					X_re[m1] = X_re[m1] + X_re[m2];
+
+				X_re[m1] = X_re[m1] + X_re[m2];
 				X_im[m1] = X_im[m1] + X_im[m2];
 
 				phase = -2.0 * M_PI * j / num_of_elements;
 
 				X_re[m2] = X_temp_re * cos(phase) - X_temp_im * sin(phase);
-				X_im[m2] = X_temp_re * sin(phase) - X_temp_im * cos(phase);
+				X_im[m2] = X_temp_re * sin(phase) + X_temp_im * cos(phase);
 			}
 
 			m1 += size_of_butterfly;
@@ -1003,6 +1021,8 @@ int fft_2d(double** X_re, double** X_im, int N, int Mode)
 		return -1;
 	if ((temp_im = (double*)malloc(sizeof(double) * N)) == NULL)
 		return -1;
+
+	//row만큼의 횟수로 짝수 홀수 분할하여 fft 수행
 
 	if (Mode == 0)
 	{
@@ -1055,15 +1075,16 @@ int fft_2d(double** X_re, double** X_im, int N, int Mode)
 		{
 			for (j = 0; j < N; j++)
 			{
-				temp_re[j] = X_re[i][j] * pow(-1,j);
+				temp_re[j] = X_re[i][j] * pow(-1, j);
 				temp_im[j] = X_im[i][j] * pow(-1, j);
 			}
+
 			fft(temp_re, temp_im, N);
 
 			for (j = 0; j < N; j++)
 			{
-				X_re[i][j] = temp_re[j] / N;
-				X_im[i][j] = temp_im[j] / N;
+				X_re[i][j] = temp_re[j];
+				X_im[i][j] = temp_im[j];
 			}
 
 		}
@@ -1074,6 +1095,7 @@ int fft_2d(double** X_re, double** X_im, int N, int Mode)
 				temp_re[i] = X_re[i][j] * pow(-1, i);
 				temp_im[i] = X_im[i][j] * pow(-1, i);
 			}
+
 			fft(temp_re, temp_im, N);
 
 			for (i = 0; i < N; i++)
@@ -1183,6 +1205,170 @@ void fftInit(uchar** img, uchar** res, int row, int col, int Mode)
 }
 
 */
+
+
+void Fdct(int** PEL, int** Coeff) {
+	int i, j, k;
+	long dd;
+	int t[8][8];
+
+	for (i = 0; i < 8; i++) 
+	{
+		for (j = 0; j < 8; j++) 
+		{
+			dd = 0;
+			for (k = 0; k < 8; k++)
+				dd += (long)PEL[i][k] * dct_buffer[j][k];
+
+			t[i][j] = ((dd + 2048) >> 12);
+		}
+	}
+
+
+	for (i = 0; i < 8; i++) 
+	{
+		for (j = 0; j < 8; j++) 
+		{
+			dd = 0;
+			for (k = 0; k < 8; k++)
+				dd += (long)t[k][i] * dct_buffer[j][k];
+			Coeff[j][i] = ((dd + 16384) >> 15);
+		}
+	}
+}
+
+void Idct(int** Coeff, int** PEL) {
+	int i, j, k;
+	long dd;
+	int t[8][8];
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			dd = 0;
+			for (k = 0; k < 8; k++) {
+				dd += (long)Coeff[k][i] * dct_buffer[k][j];
+			}
+			t[i][j] = ((dd + 2048) / 4096);
+		}
+	}
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			dd = 0;
+			for (k = 0; k < 8; k++) 
+				dd += (long)t[k][i] * dct_buffer[k][j];
+		
+			PEL[i][j] = ((dd + 16384) / 32768);
+		}
+	}
+}
+
+void myFdct(int** PEL, int** Coeff)
+{
+	int u, v, x, y,N;
+
+	int blockSize = 8;
+
+	double t[8][8] = { 0 };
+	double cU = 0, cV = 0, temp,value;
+	
+	N = blockSize;
+
+	for (v = 0; v < N; v++)
+	{
+		if (v == 0)
+			cV = 1. / sqrt(2);
+		else
+			cV = 1.;
+		for (u = 0; u < N; u++)
+		{
+			value = 0;
+			if (u == 0)
+				cU = 1. / sqrt(2);
+			else
+				cU = 1.;
+
+			temp =(cU * cV * 4) / (N * N);
+
+			for (y = 0; y < N; y++)
+			{
+				for (x = 0; x < N; x++)
+				{
+					value += PEL[x][y] * cos(((2 * x + 1) * (u * M_PI)) / (2 * N)) * cos(((2 * y + 1) * (v * M_PI)) / (2 * N));
+				}
+			}
+
+			Coeff[u][v] = value * temp;
+
+
+
+		}
+	}
+
+
+}
+
+void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
+{
+	int i, j, block = 8,x,y;
+	int** inBox, ** outBox;
+
+	inBox = i_alloc(block,block);
+	outBox = i_alloc(block, block);
+
+	for (i = 0; i < row; i += block)
+		for (j = 0; j < col; j += block)
+		{
+			for (y = 0; y < block && i + y < row - 1; y++)
+				for (x = 0; x < block && j + x < col - 1; x++)
+				{
+					inBox[y][x] = (int)img[i + y][j + x];
+					outBox[y][x] = (int)img[i + y][j + x];
+				}
+
+			/*
+				tmp(합계)를 count(픽셀 개수)로 나누어 블럭 내 픽셀의 평균 값을 구함
+				이후 구해진 값을 블럭 내 모든 픽셀에 입력해 블럭 내 모든 픽셀이 같은 값을 갖게함.
+				최대 row와 col 초과시 break.
+			*/
+
+			switch (Mode)
+			{
+			case 0:
+
+//				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
+//				Fdct(inBox, outBox);
+
+				break;
+			case 1 :
+	//			printf("IDCT ...outbox[%d][%d] = %d\n", i + y, j + x, inBox[y][x]);
+				myFdct(inBox, outBox);
+
+				Idct(inBox, outBox);
+				break;
+
+			case 2:
+
+				//				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
+				Fdct(inBox, outBox);
+
+				Idct(outBox, outBox);
+
+
+				break;
+			default :
+				printf("invalid mode input\n");
+				exit(1);
+			}
+			
+	
+			for (y = 0; y < block && i + y < row - 1; y++)
+				for (x = 0; x < block && j + x < col - 1; x++)
+					res[i + y][j + x] = (uchar)outBox[y][x];
+		}
+}
+
+
 int main(int argc, char* argv[])
 {
 	srand(time(NULL));
@@ -1285,7 +1471,11 @@ int main(int argc, char* argv[])
 
 		case 15: 
 
-			fftInit(img, res,row,col, arg0);
+			fftInit(img, res, row , col, arg0);
+			break;
+
+		case 16:
+			dctInit(img, res, row, col, arg0);
 			break;
 
 		default : 
