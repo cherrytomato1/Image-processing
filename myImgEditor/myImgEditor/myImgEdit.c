@@ -1262,23 +1262,23 @@ void Idct(int** Coeff, int** PEL) {
 		
 			PEL[i][j] = ((dd + 16384) / 32768);
 
-			printf("PEL[%d][%d] = %d \n", j, i, PEL[j][i]);
+			//printf("PEL[%d][%d] = %d \n", j, i, PEL[j][i]);
 		}
 	}
 }
 
 //fdct 연산 매개변수 입력박스, 출력박스
-void myFdct(int** PEL, int** Coeff)
+void myFdct(double** PEL, double** Coeff)
 {
-	int u, v, x, y,N;
+	int u, v, x, y;
 	//변환 블록사이즈
 	int blockSize = 8;
 
 	//C(u), C(v) 정의
-	double cU = 0, cV = 0, temp,value;
+	double cU = 0, cV = 0, temp,value,N;
 	
 	//변수 N 초기화 (x,y 가 같은경우 하나로 정의)
-	N = blockSize;
+	N = (double)blockSize;
 
 
 	//모든 경우의 F(u,v) 연산을 위한 반복문 (기본 8*8)
@@ -1309,7 +1309,7 @@ void myFdct(int** PEL, int** Coeff)
 			//printf("cU = .0%lf \n", cU);
 
 			//시그마 연산 이전 곱해지는 C(u),C(v)에 대한식 정의
-			temp =(cU * cV * 4.) / ((double)N * (double)N);
+			temp =(cU * cV * 4.) / (N * N);
 
 			//시그마에 대한 반복문
 			for (y = 0; y < N; y++)
@@ -1317,14 +1317,14 @@ void myFdct(int** PEL, int** Coeff)
 				for (x = 0; x < N; x++)
 				{
 					//이후 수식 정리
-					value += (double)PEL[x][y] * cos((((2. * (double)x) + 1) * ((double)u * M_PI)) / (2. * (double)N))
-						* cos((((2. * (double)y) + 1.) * (v * M_PI)) / (2. * (double)N)) * 4. ;
+					value += PEL[x][y] * cos((((2. * (double)x) + 1) * ((double)u * M_PI)) / (2. * N))
+						* cos((((2. * (double)y) + 1.) * (v * M_PI)) / (2. * N)) * 4. ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
 
 			//시그마 합산결과와 Cu,Cv 식 곱
-			Coeff[u][v] = (int)(value * temp);
+			Coeff[u][v] = (double)(value * temp);
 
 		//	printf("coeff[%d][%d] = %d \n", u, v, Coeff[u][v]);
 
@@ -1335,17 +1335,17 @@ void myFdct(int** PEL, int** Coeff)
 }
 
 //idct 연산 매개변수 입력박스 출력박스
-void myIdct(int** Coeff, int** PEL) {
-	int u, v, x, y, N;
+void myIdct(double** Coeff, double** PEL) {
+	int u, v, x, y;
 	
 	//박스 사이즈
 	int blockSize = 8;
 
 	//cu, cv 정의
-	double cU = 0, cV = 0, temp, value;
+	double cU = 0, cV = 0, temp, value,N;
 
 	//변수 N 정의 (박스 사이즈)
-	N = blockSize;
+	N = (double)blockSize;
 
 	//모든 경우의 f(x,y) 연산을 위한 반복문 (기본 8*8)
 	for (y = 0; y < N; y++)
@@ -1366,7 +1366,7 @@ void myIdct(int** Coeff, int** PEL) {
 
 			//시그마 연산 이전 곱해지는 식 정의
 			//반복문에 사용되는 변수가 없으므로 반복문 외부로 뺄 수 있음
-			temp = 4. / ((double)N * (double)N);
+			temp = 4. / (N * N);
 
 
 			//printf("temp = %lf \n ", temp);
@@ -1387,17 +1387,17 @@ void myIdct(int** Coeff, int** PEL) {
 					else
 						cU = 1.;
 
-					//합산 식
-					value += cU*cV* (double)Coeff[u][v] * cos( ( ( (2 * (double)x) + 1 ) * ((double)u * M_PI ) ) / (2 * (double)N) )
-						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * (double)N ) ) * 4 ;
+						//합산 식
+					value += cU * cV * Coeff[u][v] * cos( ( ( (2 * (double)x) + 1 ) * ((double)u * M_PI ) ) / (2 * N) )
+						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * N ) ) * 4 ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
 
 			//결과 대입
-			PEL[x][y] = (int)(value * temp);
+			PEL[x][y] = value * temp;
 
-			printf("PEL[%d][%d] = %d \n", x, y, PEL[x][y]);
+			//printf("PEL[%d][%d] = %d \n", x, y, PEL[x][y]);
 
 		}
 	}
@@ -1412,12 +1412,12 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 {
 	int i, j, block = 8,x,y;
 	//	입력 box(변환크기 /기본값 8), 중간출력 box, 결과 출력 box
-	int** inBox, ** outBox, **outBox2;
+	double** inBox, ** outBox, **outBox2;
 
 	// box 메모리 할당
-	inBox = i_alloc(block,block);
-	outBox = i_alloc(block, block);
-	outBox2 = i_alloc(block, block);
+	inBox = d_alloc(block,block);
+	outBox = d_alloc(block, block);
+	outBox2 = d_alloc(block, block);
 
 
 	//box 단위 반복
@@ -1432,25 +1432,17 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 			for (y = 0; y < block && i + y < row - 1; y++)
 				for (x = 0; x < block && j + x < col - 1; x++)
 				{
-					inBox[y][x] = (int)img[i + y][j + x];
+					inBox[y][x] = (double)img[i + y][j + x];
 
 					//불필요 작업( 오로지 출력)
-					outBox[y][x] = (int)img[i + y][j + x];
-					outBox2[y][x] = (int)img[i + y][j + x];
+					//outBox[y][x] = (double)img[i + y][j + x];
+					//outBox2[y][x] = (double)img[i + y][j + x];
 				}
 
 			// 어떤 변환을 사용할 것인지 매개변수를 통해 설정
 			
 			switch (Mode)
 			{
-				//case 0  : 미사용
-			case 0:
-
-//				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
-//				Fdct(inBox, outBox);
-
-				break;
-
 				//case 1 : integer 버퍼 사용
 			case 1 :
 	//			printf("IDCT ...outbox[%d][%d] = %d\n", i + y, j + x, inBox[y][x]);
@@ -1464,6 +1456,7 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 			case 2:
 
 				//				printf("FDCT ...inbox[%d][%d] = %d\n",i+y,j+x,inBox[y][x]);
+				//printf("my Fdct, Idct\n");
 				myFdct(inBox, outBox);
 
 				//Idct(outBox, outBox);
@@ -1482,6 +1475,21 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 			for (y = 0; y < block && i + y < row - 1; y++)
 				for (x = 0; x < block && j + x < col - 1; x++)
 					res[i + y][j + x] = (uchar)outBox2[y][x];
+
+
+			/*
+			for (y = 0; y < block && i + y < row - 1; y++)
+				for (x = 0; x < block && j + x < col - 1; x++)
+				{
+					if (outBox[y][x] > 255.)
+						outBox[y][x] = 255.;
+					else if (outBox[y][x] < 0.)
+						outBox[y][x] = 0.;
+					res[i + y][j + x] = (uchar)outBox[y][x];
+					
+
+				}
+			*/
 		}
 }
 
