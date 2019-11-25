@@ -1469,6 +1469,7 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 				printf("invalid mode input\n");
 				exit(1);
 			}
+
 			
 			//박스단위로 변환된 이미지를 결과에 출력
 	
