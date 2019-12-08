@@ -38,6 +38,8 @@
 #include <math.h>
 #include <time.h>
 
+#include "wfilter.h"
+
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -223,7 +225,6 @@ void Mosaic(int row, int col, uchar** img, uchar** res, int block)
 			for (y = 0; y < block && i + y < row - 1; y++)
 				for (x = 0; x < block && j+x<col-1; x++, count++)
 					tmp += img[i + y][j + x];		
-
 			/*
 				tmp(합계)를 count(픽셀 개수)로 나누어 블럭 내 픽셀의 평균 값을 구함
 				이후 구해진 값을 블럭 내 모든 픽셀에 입력해 블럭 내 모든 픽셀이 같은 값을 갖게함.
@@ -380,7 +381,7 @@ void bitSlicing(uchar** img, uchar** res, int row, int col, int position)
 	uchar mask = 0x01;
 	mask <<= position;
 	/*
-		비트연산 - mask값(0000 0001)을 입력하는 매개변수만큼 (1~7)*/
+		비트이동 - mask값(0000 0001)을 입력하는 매개변수만큼 (1~7)*/
 
 
 	for(i=0; i< row; i++)
@@ -391,6 +392,8 @@ void bitSlicing(uchar** img, uchar** res, int row, int col, int position)
 			else
 				res[i][j] = 0;
 		}
+	//매개변수만큼 비트 이동시킨 마스크 값과 & 연산을 통해 값의 유무를 판단하여
+	//결과 영상 값을 0 혹은 255로 변환
 	printf("bit sliced %d...",position);
 	return;
 }
@@ -538,8 +541,6 @@ void circleMosaic(uchar** img, uchar** res, int row, int col, int mod)
 			//중앙 점에서  ysquare/xsquare row와 col의 중앙 거리 계산
 			//피타고라스의 정리 = a^2 +b^2 = c^2
 
-			
-
 			// tmp == 각각의 픽셀이 한가운데의 중앙 점으로부터 유격되어 있는 정도.
 			//빗변의 길이 = (a^2+b^2)의 제곱근 = tmp = (ysquare +xsquare) 제곱근
 }
@@ -588,13 +589,21 @@ double gaussian()
 double noisedImage(uchar** img, int** res, int row, int col)
 {
 	double sum = 0;
-	int i, j;
+	int i, j,temp;
 
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
-			res[i][j] = img[i][j] + ((int)gaussian()*50);
-
-
+		{
+			//가우시안 난수 합성, 가우시안 난수 값이 작으므로 50배하여 더함
+			temp = img[i][j] + ((int)gaussian() * 50);
+			
+			//클리핑 동작
+			if (temp > 255)
+				temp = 255;
+			else if (temp < 0)
+				temp = 0;
+			res[i][j] = temp;
+		}
 	return 0;
 }
 //원하는 페이지 만큼 가우시안 난수 발생
@@ -608,6 +617,7 @@ void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 	tmp = i_alloc(row, col);
 	tmp2 = i_alloc(row, col);
 
+	//원하는 갯수만큼 잡음 포함된 이미지를 구하여 더함
 	for (k = 0; k < page; k++)
 	{
 		noisedImage(img, tmp2, row, col);
@@ -615,6 +625,7 @@ void noisedImage2(uchar** img, uchar** res, int row, int col, int page)
 			for (j = 0; j < col; j++)
 				tmp[i][j] += tmp2[i][j];
 	}
+	//구해진 잡음 영상의 평균을 구함
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 			res[i][j] = (tmp[i][j]/page);
@@ -630,21 +641,29 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 
 	int margin, indexX, indexY;
 	double sum, coeff;
-
-	//여백 공간
+	//F_LENGTH = 필터 사이즈
+	//여백 공간, 필터 중앙으로 부터 떨어져 있는 값.
 	margin = (int)(F_length / 2);	
 
 	for (i = 0; i < size_y; i++)
 		for (j = 0; j < size_x; j++)
 		{
 			sum = 0;
+			// X, Y = 필터 내부에서 동작하는 반복문
+			// 필터 사이즈만큼 반복하여 매 픽셀마다 해당 픽셀부터 F_LENGTH^2 만큼 반복하여
+			// 필터를 통과시킨다.
 			for (y = 0; y < F_length; y++)
 			{
+				//x,y = 필터의 중앙값이 위치할 픽셀
+				//indexX, Y = 해당 필터를 통과하는 첫번째 인덱스
 				indexY = i - margin + y;
+
+				//해당 인덱스가 영상의 외곽을 통과할 경우 처리
 				if (indexY < 0)
 					indexY = -indexY;
 				else if (indexY >= size_y)
 					indexY = (2 * size_y - indexY - 1);
+
 				for (x = 0; x < F_length; x++)
 				{
 					indexX = j - margin + x;
@@ -652,12 +671,13 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 						indexX = -indexX;
 					else if (indexX >= size_x)
 						indexX = (2 * size_x - indexX - 1);			//외곽처리( 대칭기법 )
-
+					/*필터를 통과한 값들을 합한다. (총 9개의 값)*/
 					sum += h[y][x] * (double)img[indexY][indexX];
 
 				}
 			}
-
+			//필터 값 합성을 위한 val 변수, 라플라스 필터와 같은 경우에서
+			//필터 값을 추가하여 필터링된 영상+ val 영상 출력
 			sum+=val;
 
 			if (sum < 0)
@@ -1393,7 +1413,7 @@ void myIdct(double** Coeff, double** PEL) {
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
-
+			
 			//결과 대입
 			PEL[x][y] = value * temp;
 
@@ -1494,6 +1514,175 @@ void dctInit(uchar** img, uchar** res, int row, int col, int Mode)
 		}
 }
 
+void row_analysis(double* h, int F_length, int size_x, int size_y, double** image1, double** image2)
+{
+	int i, j, k, margin, index, size_x2;
+	double sum, coeff;
+	double** temp;
+
+	size_x2 = size_x / 2;
+	temp = d_alloc(size_x, size_y);
+
+	for (i = 0, coeff = 0.; i < F_length; i++) coeff += h[i];
+	printf("coeff = %lf\n", coeff);
+
+	margin = (int)(F_length / 2);
+	for (i = 0; i < size_y; i++)
+		for (j = 0; j < size_x; j++)
+		{
+			for (k = 0, sum = 0.; k < F_length; k++)
+			{
+				index = j - margin + k;
+				if (index < 0) index = -index;
+				else if (index >= size_x) index = (2 * size_x - index - 2);
+				sum += h[k] * image1[i][index];
+			}
+			if (coeff > 1.) sum /= coeff;
+			/*	if (sum < 0) sum = 0.;
+				else if (sum > 255) sum = 255.;
+			*/
+			temp[i][j] = sum;
+			//			printf("sum = %lf\n", sum);
+		}
+
+	for (i = 0; i < size_y; i++)
+		for (j = 0, k = 0; j < size_x; j += 2, k++)
+		{
+			image2[i][k] = temp[i][j];
+			//printf("row  image2[%d][%d] = %lf\n", i, k, image2[i][k]);
+		}
+
+	//free(temp); // d_free(size_x, size_y, temp);
+}
+
+void column_analysis(double* h, int F_length, int size_x, int size_y, double** image1, double** image2)
+{
+	int i, j, k, margin, index, size_x2, size_y2;
+	double sum, coeff;
+	double** temp;
+
+	size_x2 = size_x / 2;
+	size_y2 = size_y / 2;
+
+	temp = d_alloc(size_x2, size_y);
+
+	for (i = 0, coeff = 0.; i < F_length; i++) coeff += h[i];
+	printf("coeff = %lf\n", coeff);
+
+	margin = (int)(F_length / 2);
+	for (i = 0; i < size_x2; i++)
+		for (j = 0; j < size_y; j++)
+		{
+			for (k = 0, sum = 0.; k < F_length; k++)
+			{
+				index = j - margin + k;
+				if (index < 0) index = -index;
+				else if (index >= size_y) index = (2 * size_y - index - 2);
+				sum += h[k] * image1[index][i];
+			}
+			if (coeff > 1.) sum /= coeff;
+			if (sum < 0) sum = 0.;
+			else if (sum > 255) sum = 255.;
+
+			temp[j][i] = sum;
+			//printf("sum = %lf\n", sum);
+
+		}
+	//printf("col-----last\n");
+	for (i = 0; i < size_x2; i++)
+		for (j = 0, k = 0; j < size_y; j += 2, k++)
+		{
+			image2[k][i] = temp[j][i];
+			//printf("col  image2[%d][%d] = %lf\n", k, i, image2[k][i]);
+
+		}
+	//printf("col ==== end===\n");
+	//free(temp); // d_free(size_x2, size_y, temp);
+}
+
+
+void analysis(uchar** img, uchar** res, int row, int col, int level)
+{
+	int i, j,size_x,size_y;
+	double **dImg, **dRes,**dTmp;
+
+	dImg = d_alloc(row, col);
+	dTmp = d_alloc(row, col);
+	dRes = d_alloc(row, col);
+
+	size_x = row;
+	size_y = col;
+
+	for (i = 0; i < row; i++)
+		for (j = 0; j < col; j++)
+			dImg[i][j] = (double)img[i][j];
+
+
+
+	//analysis2
+	row_analysis(A97L1,A97L1_l, size_x, size_y, dImg, dTmp);
+	column_analysis(A97L1, A97L1_l, size_x, size_y, dTmp, dRes);
+
+	column_analysis(A97H1, A97H1_l, size_x, size_y, dTmp, dRes);
+	for (i = 0; i < row; i++)
+		for (j = 0; j < col; j++)
+		{
+			res[i][j] = (uchar)(dRes[i][j] * 128);
+			if (res[i][j] < 0)
+				res[i][j] = 0;
+			else if (res[i][j] > 255)
+				res[i][j] = 255;
+		}
+}
+/*
+void binErosion(uchar** img, uchar** res, int block,int **mask)
+{
+	int i, j, count;
+	int indexi, indexj;
+	int maski, maskj;
+
+	printf("binEros init\n");
+	for (i = ; i < block - row; i++)
+	{
+		for (j = -col; j < block - col; j++)
+		{
+			printf(" -row= %d , -col= %d, i= %d , j=%d\n", -row, -col, i, j);
+			count = 0;
+			for (maski = 0; maski <= 2 * row; maski++)
+			{
+				for (maskj = 0; maskj <= 2 * col; maskj++)
+				{
+					if (mask[maski][maskj] != 0)
+					{
+						indexi = i + maski;
+						indexj = j + maskj;
+
+						if (img[indexi][indexj] == 255) 
+						{
+							count++;
+						}
+					}
+				}
+			}
+			if (count == 5)
+				res[i + row][j + col] = 255;
+			else
+				res[i + row][j + col] = 0;
+
+		}
+	}
+}
+*/
+void mopology(uchar** img, uchar** res,int row, int col, int mode)
+{
+	int block = 3;
+	int mask[3][3] = {	0, 1, 0, 
+						1, 1, 1, 
+						0, 1, 0 };
+
+	printf(" mop init \n");
+	//binErosion(img, res,row,col, block,mask);
+}
 
 int main(int argc, char* argv[])
 {
@@ -1604,6 +1793,13 @@ int main(int argc, char* argv[])
 			dctInit(img, res, row, col, arg0);
 			break;
 
+		case 17:
+			analysis(img, res, row, col, arg0);
+			break;
+
+		case 18 :
+			mopology(img, res,row,col, arg0);
+			break;
 		default : 
 			printf("argv error2\n");
 			exit(0);
