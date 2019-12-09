@@ -676,10 +676,11 @@ void convolution(double** h, int F_length, int size_x, int size_y, uchar** img, 
 
 				}
 			}
-			//필터 값 합성을 위한 val 변수, 라플라스 필터와 같은 경우에서
+			//val = 필터 값 합성을 위한 backgroud 값 변수, 라플라스 필터와 같은 경우에서
 			//필터 값을 추가하여 필터링된 영상+ val 영상 출력
 			sum+=val;
 
+			//클리핑 동작
 			if (sum < 0)
 				sum = 0;
 			else if (sum > 255)
@@ -786,6 +787,7 @@ int make_Mask(int mSize, double** mask, int flag)
 		for (i = 0; i < mSize; i++)
 			for (j = 0; j < mSize; j++)
 				mask[i][j] = laplace4Mask[i][j];
+		break;
 
 	case 9:
 		for (i = 0; i < mSize; i++)
@@ -813,7 +815,7 @@ int make_Mask(int mSize, double** mask, int flag)
 		printf("mask number wrong...");
 		exit(1);
 	}
-	if (mod = 1)
+	if (mod == 1)
 	{
 		mask[1][1] += 1;
 	}
@@ -835,24 +837,33 @@ void Filtering(uchar** img, uchar** res, int x_size, int y_size, int flag)
 	int bg = 0;
 	double **mask;
 
-	mask = (double **)calloc(block_size, sizeof(double*));
+	//사용할 필터의 메모리 동적할당, 필터사이즈^2의 공간을 할당한다.
+	mask = (double **)calloc(block_size, sizeof(double*));		
 	for (i = 0; i < block_size; i++)
 		mask[i] = (double *)calloc(block_size, sizeof(double));
 
+	//입력한 flag에 따라 해당하는 마스크를 가져옴
+	//backGround 그레이 레벨, 합성하는 flag 입력시 값을 반환함
 	bg=make_Mask(block_size, mask, flag);
 
+	//필터를 통과시키는 동작, 마스크, 마스크 사이즈, 이미지를 매개변수로 한다.
 	convolution(mask, block_size, x_size, y_size, img, res, bg);
 }
 
+
+//medianfilter의 값 정렬을 위한 버블 정렬
 void Bubble_sort(uchar* Sort, uchar* median_value, int Mode, int filterSize)
 {
 	int i, x;
 	uchar temp, swap;
-	for (x = 0; x < filterSize; x++)
+	//필터사이즈 ^2 만큼 반복( 필터에 들어가는 총 값의 수)
+	for (x = 0; x < filterSize*filterSize; x++)
 	{
+		//비교를 위한 값 대입
 		temp = Sort[x];
-		for (i = x; i < filterSize - 1; i++)
+		for (i = x; i < filterSize * filterSize- 1; i++)
 		{
+			//버블 정렬 동작
 			if (temp >= Sort[i + 1])
 			{
 				swap = temp;
@@ -865,10 +876,10 @@ void Bubble_sort(uchar* Sort, uchar* median_value, int Mode, int filterSize)
 	if (Mode == -1)
 		*median_value = (uchar)Sort[0]; // median filter의 중앙값을 필터내의 최솟값으로 설정
 	else if (Mode == 0)
-		*median_value = (uchar)Sort[filterSize / 2]; // median filter의 중앙값을 필터내의 중간값으로 설정
+		*median_value = (uchar)Sort[filterSize * filterSize / 2]; // median filter의 중앙값을 필터내의 중간값으로 설정
 	else if (Mode == 1)
-		*median_value = (uchar)Sort[filterSize - 1]; // median filter의 중앙값을 필터내의 최대값으로 설정
-	printf("%d  ,", *median_value);
+		*median_value = (uchar)Sort[filterSize * filterSize - 1]; // median filter의 중앙값을 필터내의 최대값으로 설정
+	//printf("%d  ,", *median_value);
 
 }
 
@@ -877,20 +888,25 @@ void median(uchar** inImg, uchar** outImg, int ROW, int COL, int Mode, int filte
 	int i, j, x, y, z, count = 0;
 	uchar median_value; // 필터의 중앙값
 	uchar* Sort;
-	Sort = (uchar*)malloc(filterSize * filterSize * sizeof(uchar)); // 필터의 마스크값을 정렬해 저장할 포인터 배열 동적할당
+	// 필터의 마스크값을 정렬해 저장할 포인터 배열 동적할당
+	Sort = (uchar*)malloc(filterSize * filterSize * sizeof(uchar)); 
 
 
 	for (i = 0; i < ROW; i++)
 		for (j = 0; j < COL; j++)
 			outImg[i][j] = inImg[i][j];
 
+	//모든 픽셀에 대하여 영상의 외곽을 초과하지 않는 범위 내에서 필터링
 	for (i = 0; i < ROW - filterSize; i++)
 		for (j = 0; j < COL - filterSize; j++)
 		{
+			//필터내의 모든 값을 sort 배열에 입력
 			for (x = 0; x < filterSize; x++)
 				for (y = 0; y < filterSize; y++)	
 					Sort[filterSize * x + y] = inImg[i + x][j + y];
+			//입력된 배열을 정렬
 			Bubble_sort(Sort, &median_value, 0, filterSize);
+			//필터의 중앙에 위치한 픽셀에 median value를 입력
 			outImg[i + 1][j + 1] = median_value;
 		}
 	free(Sort);
@@ -1037,16 +1053,15 @@ int fft_2d(double** X_re, double** X_im, int N, int Mode)
 	int i, j;
 	double* temp_re, *temp_im;
 
+	//temp 메모리 할당
 	if ((temp_re = (double*)malloc(sizeof(double) * N)) == NULL)
 		return -1;
 	if ((temp_im = (double*)malloc(sizeof(double) * N)) == NULL)
 		return -1;
 
-	//row만큼의 횟수로 짝수 홀수 분할하여 fft 수행
-
 	if (Mode == 0)
 	{
-
+		//row만큼 횟수로  fft 수행
 		for (i = 0; i < N; i++)
 			fft(X_re[i], X_im[i], N);
 
@@ -1132,7 +1147,7 @@ int fft_2d(double** X_re, double** X_im, int N, int Mode)
 	return 0;
 
 }
-
+//fft 시작함수, mode를 매개변수로 받음
 void fftInit(uchar** img, uchar** res,int row, int col, int Mode)
 {
 	int i,j;
@@ -1140,7 +1155,7 @@ void fftInit(uchar** img, uchar** res,int row, int col, int Mode)
 	t_img = d_alloc(row, col);
 	t_tmp = d_alloc(row, col);
 
-
+	//결과 이미지 및 입력 이미지를 double로 할당, 대입함
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 		{
@@ -1155,8 +1170,10 @@ void fftInit(uchar** img, uchar** res,int row, int col, int Mode)
 			//printf(" %lf ,", t_tmp[i][j]);
 		}
 
+	//2분할 fft 진행, row를 매개변수로 넘김
 	fft_2d(t_img, t_tmp, row, Mode);
 
+	//클리핑동작
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 		{
@@ -1165,6 +1182,7 @@ void fftInit(uchar** img, uchar** res,int row, int col, int Mode)
 			else if (t_img[i][j] < 0.)
 				t_img[i][j] = 0.;
 
+			//결과 영상에 연산된 결과 영상 대입
 			res[i][j] = (uchar)t_img[i][j];
 			//printf(" %d, ", res[i][j]);
 		}
@@ -1299,8 +1317,7 @@ void myFdct(double** PEL, double** Coeff)
 	
 	//변수 N 초기화 (x,y 가 같은경우 하나로 정의)
 	N = (double)blockSize;
-
-
+			
 	//모든 경우의 F(u,v) 연산을 위한 반복문 (기본 8*8)
 	for (v = 0; v < N; v++)
 	{
@@ -1310,26 +1327,19 @@ void myFdct(double** PEL, double** Coeff)
 		else
 			cV = 1.;
 
-		//cV = 1./sqrt(2);
-		//printf("cV = .0%lf \n", cV);
-
 		for (u = 0; u < N; u++)
 		{
 			//매 F(u,v)에 대하여 두개의 시그마 연산의 합을 저장하는 변수 value 초기화
 			value = 0.;
 
 			//C(u) 초기화
-			if (u == 0)
+			if (u == 0)	
 				cU = 1. / sqrt(2);
 			else
 				cU = 1.;
 
-			//cU = 1. / sqrt(2);
-
-			//printf("cU = .0%lf \n", cU);
-
 			//시그마 연산 이전 곱해지는 C(u),C(v)에 대한식 정의
-			temp =(cU * cV * 4.) / (N * N);
+			temp =(cU * cV * 4.) / (N * 2);
 
 			//시그마에 대한 반복문
 			for (y = 0; y < N; y++)
@@ -1338,7 +1348,7 @@ void myFdct(double** PEL, double** Coeff)
 				{
 					//이후 수식 정리
 					value += PEL[x][y] * cos((((2. * (double)x) + 1) * ((double)u * M_PI)) / (2. * N))
-						* cos((((2. * (double)y) + 1.) * (v * M_PI)) / (2. * N)) * 4. ;
+						* cos((((2. * (double)y) + 1.) * (v * M_PI)) / (2. * N))  ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
@@ -1369,24 +1379,20 @@ void myIdct(double** Coeff, double** PEL) {
 
 	//모든 경우의 f(x,y) 연산을 위한 반복문 (기본 8*8)
 	for (y = 0; y < N; y++)
-	{
-		
+	{		
 		//cV = 1./sqrt(2);
 		//printf("cV = .0%lf \n", cV);
-
 		for (x = 0; x < N; x++)
 		{
 			//매 f(x,y)에 대하여 두개의 시그마 연산의 합을 저장하는 변수 value 초기화
 			value = 0.;
 
-
 			//cU = 1. / sqrt(2);
-
 			//printf("cU = .0%lf \n", cU);
 
 			//시그마 연산 이전 곱해지는 식 정의
 			//반복문에 사용되는 변수가 없으므로 반복문 외부로 뺄 수 있음
-			temp = 4. / (N * N);
+			temp = 4. / (N * 2);
 
 
 			//printf("temp = %lf \n ", temp);
@@ -1409,7 +1415,7 @@ void myIdct(double** Coeff, double** PEL) {
 
 						//합산 식
 					value += cU * cV * Coeff[u][v] * cos( ( ( (2 * (double)x) + 1 ) * ((double)u * M_PI ) ) / (2 * N) )
-						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * N ) ) * 4 ;
+						* cos( ( ( ( 2 * (double)y ) + 1 ) * ((double)v * M_PI ) ) / (2 * N ) ) ;
 				}
 			}
 			//printf("value = %0.5lf \n ", value);
@@ -1520,7 +1526,7 @@ void row_analysis(double* h, int F_length, int size_x, int size_y, double** imag
 	double sum, coeff;
 	double** temp;
 
-	size_x2 = size_x / 2;
+	size_x2 = size_x/2;
 	temp = d_alloc(size_x, size_y);
 
 	for (i = 0, coeff = 0.; i < F_length; i++) coeff += h[i];
@@ -1561,8 +1567,8 @@ void column_analysis(double* h, int F_length, int size_x, int size_y, double** i
 	double sum, coeff;
 	double** temp;
 
-	size_x2 = size_x / 2;
-	size_y2 = size_y / 2;
+	size_x2 = size_x/2;
+	size_y2 = size_y/2;
 
 	temp = d_alloc(size_x2, size_y);
 
@@ -1603,35 +1609,77 @@ void column_analysis(double* h, int F_length, int size_x, int size_y, double** i
 
 void analysis(uchar** img, uchar** res, int row, int col, int level)
 {
-	int i, j,size_x,size_y;
+	int i, j,size_x,size_y, mod =0;
 	double **dImg, **dRes,**dTmp;
+	//웨이블릿, 스케일링 변환 함수에서 어떤 것을 사용할 것인지 선택하는 모드 값 입력 0~3
+	printf("insert mode");
+	scanf_s("%d", &mod);
 
+	//연산용 이미지 메모리 할당
 	dImg = d_alloc(row, col);
 	dTmp = d_alloc(row, col);
 	dRes = d_alloc(row, col);
 
+
 	size_x = row;
 	size_y = col;
 
+	//입력 영상 double로 할당
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 			dImg[i][j] = (double)img[i][j];
 
+	//level 만큼 스케일링 및 웨이블릿 함수 반복
+	for (i = 0; i < level; i++)
+	{
+		//원하는 모드에 따라 4가지 다해상도 순변환 과정을 거침
 
+		switch (mod)
+		{
+		case 0 :
+			//row와 col 의 사이즈를 줄이면서 저주파 검출 
+			//사이즈가 감소된 저주파 영상 출력 스케일링, 스케일링
+			row_analysis(A97L1, A97L1_l, size_x, size_y, dImg, dTmp);
+			column_analysis(A97L1, A97L1_l, size_x, size_y, dTmp, dRes);
+			break;
 
-	//analysis2
-	row_analysis(A97L1,A97L1_l, size_x, size_y, dImg, dTmp);
-	column_analysis(A97L1, A97L1_l, size_x, size_y, dTmp, dRes);
+		case 1:
+			//row와 col 의 사이즈를 줄이고 수평 엣지 검출
+			//스케일링, 웨이블릿
+			
+			row_analysis(A97L1, A97L1_l, size_x, size_y, dRes, dTmp);
+			column_analysis(A97H1, A97H1_l, size_x, size_y, dTmp, dRes);
+			break;
 
-	column_analysis(A97H1, A97H1_l, size_x, size_y, dTmp, dRes);
+		case 2:
+			//row와 col 의 사이즈를 줄이고 수직 엣지 검출
+			//웨이블릿, 스케일링
+			row_analysis(A97H1, A97H1_l, size_x, size_y, dRes, dTmp);
+			column_analysis(A97L1, A97L1_l, size_x, size_y, dTmp, dRes);
+			break;
+
+		case 3 :
+			//row와 col 의 사이즈를 줄이고 대각선 엣지 검출
+			//웨이블릿 웨이블릿
+			row_analysis(A97H1, A97H1_l, size_x, size_y, dRes, dTmp);
+			column_analysis(A97H1, A97H1_l, size_x, size_y, dTmp, dRes);
+			break;
+		}
+		//재 작업을 위해 dimg에 결과 영상을 넣어줌
+		dImg = dRes;
+	}
+	
+//	column_analysis(A97L1, A97L1_l, size_x, size_y, dTmp, dRes);
 	for (i = 0; i < row; i++)
 		for (j = 0; j < col; j++)
 		{
-			res[i][j] = (uchar)(dRes[i][j] * 128);
-			if (res[i][j] < 0)
-				res[i][j] = 0;
-			else if (res[i][j] > 255)
-				res[i][j] = 255;
+			//dRes[i][j] += 128;
+
+			if (dRes[i][j] < 0)
+				dRes[i][j] = 0;
+			else if (dRes[i][j] > 255)
+				dRes[i][j] = 255;
+			res[i][j] = (uchar)(dRes[i][j]);
 		}
 }
 /*
@@ -1673,15 +1721,131 @@ void binErosion(uchar** img, uchar** res, int block,int **mask)
 	}
 }
 */
+
+//
+void binErosion(uchar** Data_In, uchar** Data_Out, int Row, int Col, int Size) 
+{
+	int i, j, count;
+	int indexi, indexj;
+	int maski, maskj;
+	int N_MASK[3][3] = { 0, 1, 0, 
+						 1, 1, 1,
+						 0, 1, 0 };
+
+	//row , col 만큼 반복
+	for (i = -Size; i < Row - Size; i++)
+		for (j = -Size; j < Col - Size; j++)
+		{
+			count = 0;
+			for (maski = 0; maski < Size; maski++)
+				for (maskj = 0; maskj < Size; maskj++)
+				{
+					if (N_MASK[maski][maskj] != 0)
+					{
+						//주변 마스크 값 합성
+						indexi = i + maski;
+						indexj = j + maskj;
+
+						//외곽 처리
+						if (indexi < 0) 
+							indexi = -indexi;
+						else if (indexi >= Row) 
+							indexi = 2 * Row - indexi - 1;
+						if (indexj < 0) 
+							indexj = -indexj;
+						else if (indexj >= Col) 
+							indexj = 2 * Col - indexj - 1;
+
+						if (Data_In[indexi][indexj] == 255) 
+							count++;
+					}
+				}
+			//주변 1 값이 5 이상일 경우에만 침식되지 않음
+			if (count == 5)
+				Data_Out[i + Size][j + Size] = 255;
+			else
+				Data_Out[i + Size][j + Size] = 0;
+		}
+
+}
+
+void binDilation(uchar** Data_In, uchar** Data_Out, int Row, int Col, int Size) // Size : kernel Size
+{
+	int i, j, count;
+	int indexi, indexj;
+	int maski, maskj;
+	int N_MASK[3][3] = { 0, 1, 0,
+						 1, 1, 1,
+						 0, 1, 0 };
+
+	for (i = -Size; i < Row - Size; i++)
+		for (j = -Size; j < Col - Size; j++)
+		{
+			count = 0;
+			for (maski = 0; maski < Size; maski++)
+				for (maskj = 0; maskj < Size; maskj++)
+				{
+					if (N_MASK[maski][maskj] != 0)
+					{
+						indexi = i + maski;
+						indexj = j + maskj;
+
+						//외곽 처리
+						if (indexi < 0) indexi = -indexi;
+						else if (indexi >= Row) indexi = 2 * Row - indexi - 1;
+						if (indexj < 0) indexj = -indexj;
+						else if (indexj >= Col) indexj = 2 * Col - indexj - 1;
+
+						if (Data_In[indexi][indexj] == 255) count++;
+					}
+				}
+			//연산 결과 카운터가 1이라도 존재하면 팽창수행
+			if (count)
+				Data_Out[i + Size][j + Size] = 255;
+			else
+				Data_Out[i + Size][j + Size] = 0;
+		}
+}
+
+void binOpening(uchar** Data_In, uchar** Data_Out, int Row, int Col, int Size)
+{
+	uchar** TempBlk;
+	TempBlk = uc_alloc(Row, Col);
+	binErosion(Data_In, TempBlk, Row, Col, Size);
+	binDilation(TempBlk, Data_Out, Row, Col, Size);
+
+}
+
+void binClosing(uchar** Data_In, uchar** Data_Out, int Row, int Col, int Size)
+{
+	uchar** TempBlk;
+	TempBlk = uc_alloc(Row, Col);
+	binDilation(Data_In, TempBlk, Row, Col, Size);
+	binErosion(TempBlk, Data_Out, Row, Col, Size);
+
+}
+
 void mopology(uchar** img, uchar** res,int row, int col, int mode)
 {
-	int block = 3;
-	int mask[3][3] = {	0, 1, 0, 
-						1, 1, 1, 
-						0, 1, 0 };
+	int block = 3,i,j;
+	int mod;
 
-	printf(" mop init \n");
-	//binErosion(img, res,row,col, block,mask);
+
+	switch (mode)
+	{
+	case 0:
+		binErosion(img, res, row, col, block);
+		break;
+	case 1:
+		binDilation(img, res, row, col, block);
+		break;
+	case 2:
+		binOpening(img, res, row, col, block);
+		break;
+	case 3:
+		binClosing(img, res, row, col, block);
+		break;
+	}
 }
 
 int main(int argc, char* argv[])
@@ -1776,7 +1940,7 @@ int main(int argc, char* argv[])
 
 		case 13 :
 
-			median(img, res, row, col, arg0,3);
+			median(img, res, row, col, arg0,5);
 			break;
 
 		case 14:
