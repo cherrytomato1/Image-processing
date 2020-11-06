@@ -1,4 +1,5 @@
 # Image-processing
+2019년도 2학기
 영상처리 과목 프로그램 소스
 
 ## myImgEditor
